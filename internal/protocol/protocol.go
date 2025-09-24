@@ -11,10 +11,10 @@ const (
 	FLAG_OVERWRITE = 1 << 0
 	FLAG_OLD       = 1 << 1
 
-	FrameSize          = 1029
-	EncryptedFrameSize = 1057
+	FrameSize          = 996
+	EncryptedFrameSize = 1024
 	KeySize            = 128
-	ValueSize          = 892
+	ValueSize          = 863
 	Port               = 4040
 	Timeout            = 5 * time.Second
 )
