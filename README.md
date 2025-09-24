@@ -119,6 +119,21 @@ Our design goal is to keep messages well under 10 MB so they always fit cleanly 
 
 ---
 
+### Flags Bitmask
+
+| Bit  | Meaning   | Notes                                     |
+| ---- | --------- | ----------------------------------------- |
+| 0    | Overwrite | Allow overwriting existing values         |
+| 1    | Old       | Return the previous value (even if empty) |
+| 2    | Reserved  |                                           |
+| 3    | Reserved  |                                           |
+| 4    | Reserved  |                                           |
+| 5    | Reserved  |                                           |
+| 6    | Reserved  |                                           |
+| 7–31 | Reserved  | Full 32-bit space allows future expansion |
+
+---
+
 ### Example
 
 - **SET key=foo, value=bar**
