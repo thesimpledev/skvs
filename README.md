@@ -99,34 +99,51 @@ Create client library
 
 To reduce parsing overhead and keep message sizes consistent, the server will support a fixed-size binary protocol. Each message is exactly **1024 bytes**.
 
+## Binary Protocol (Planned, Compact)
+
+The protocol is designed to be tiny and efficient. Each message is fixed size, encrypted client-side and decrypted server-side.  
+Our design goal is to keep messages well under 10 MB so they always fit cleanly in a single TCP packet stream.
+
+---
+
 ### Layout
 
-| Offset | Size   | Field   | Notes                                      |
-| ------ | ------ | ------- | ------------------------------------------ |
-| 0      | 1 byte | Flags   | bit 0 = overwrite, bit 1 = old             |
-| 1      | 1 byte | Command | 0=SET, 1=GET, 2=DELETE, 3=EXISTS           |
-| 2      | 128 B  | Key     | ASCII/UTF-8 string, null-padded if shorter |
-| 130    | 892 B  | Value   | ASCII/UTF-8 string, null-padded if shorter |
-| Total  | 1024 B | Message | Fixed size                                 |
+| Offset | Size   | Field   | Notes                                               |
+| ------ | ------ | ------- | --------------------------------------------------- |
+| 0      | 1 B    | Command | 0=SET, 1=GET, 2=DELETE, 3=EXISTS (up to 256 total). |
+| 1      | 4 B    | Flags   | 32-bit bitmask. Each bit is an independent flag.    |
+| 5      | 128 B  | Key     | ASCII/UTF-8 string, null-padded if shorter.         |
+| 133    | 892 B  | Value   | ASCII/UTF-8 string, null-padded if shorter.         |
+| 1025   | 64 B   | API Key | Fixed 64-char ASCII secret, validated post-decrypt. |
+| Total  | 1089 B | Message | Fixed size, fully encrypted.                        |
+
+---
 
 ### Example
 
 - **SET key=foo, value=bar**
-  - Flags = `00000001` (overwrite=true, old=false)
   - Command = `0` (SET)
+  - Flags = `00000001` (overwrite=true, old=false)
   - Key field = `"foo"` + 125 null bytes
   - Value field = `"bar"` + 889 null bytes
+  - API Key = 64 ASCII characters (configured on server, required to process)
+
+---
 
 ### Benefits
 
-- Constant 1024-byte messages (simple to read/write).
-- Parsing requires no dynamic length checks.
-- Perfectly aligned with existing buffer size.
-- Supports up to 128-character keys and 892-character values.
-- Memory footprint: ~1 KB per entry (≈1 GB for 1M entries before Go map overhead).
+- Compact: only **1089 bytes** per message.
+- **1B command** = 256 possible command codes → enough for a small, purpose-built KV protocol.
+- **4B flags** = 32 independent toggles for features.
+- Parsing is O(1) with fixed offsets.
+- Fully encrypted for confidentiality and integrity.
+- Lightweight memory use: ~1.1 KB per entry (≈1.1 GB for 1M entries before Go map overhead).
+
+---
 
 ### Notes
 
+- The entire 1089-byte message is encrypted/decrypted in one operation (AES-256 GCM recommended).
 - Keys and values are treated as ASCII/UTF-8.
-- Multi-byte UTF-8 characters reduce effective character count (e.g., emoji).
-- For JWT expiry (the primary use case), keys will be ASCII (UUIDs, hashes, usernames) and values will be timestamps, so this is not a limitation.
+- Multi-byte UTF-8 characters reduce effective count (e.g., emoji).
+- For JWT expiry (primary use case), keys are ASCII (UUIDs, hashes) and values are timestamps, so no limitation.
