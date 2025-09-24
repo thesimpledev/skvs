@@ -1,9 +1,9 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/thesimpledev/skvs/internal/encryption"
 	"github.com/thesimpledev/skvs/internal/protocol"
@@ -32,7 +32,12 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
-func (c *Client) Send(command byte, flags uint32, key, value string) ([]byte, error) {
+func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, value string) ([]byte, error) {
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return nil, fmt.Errorf("Send requires a context with deadline")
+	}
+
 	frame := make([]byte, protocol.FrameSize)
 
 	frame[0] = command
@@ -50,13 +55,16 @@ func (c *Client) Send(command byte, flags uint32, key, value string) ([]byte, er
 		return nil, fmt.Errorf("encryption failed: %w", err)
 	}
 
+	_ = c.conn.SetWriteDeadline(deadline)
+	_ = c.conn.SetReadDeadline(deadline)
+
 	_, err = c.conn.Write(encrypted)
 	if err != nil {
 		return nil, fmt.Errorf("send frame: %w", err)
 	}
 
 	buf := make([]byte, protocol.EncryptedFrameSize)
-	c.conn.SetReadDeadline(time.Now().Add(protocol.Timeout))
+
 	n, _, err := c.conn.ReadFromUDP(buf)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)

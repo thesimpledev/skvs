@@ -1,6 +1,8 @@
 # Simple Key Value Server
 
-A tiny UDP key–value server for internal use where you own both client and server and want something lighter than Valkey/Redis. It’s intentionally minimal, fast, and easy to reason about.
+The Simple Key Value Server is a tiny UDP key–value server for a personal project where I needed something lighter than Valkey or Redis.. It’s intentionally minimal, fast, and easy to reason about.
+
+## Features
 
 - Transport: UDP (one datagram per request/response)
 - Payload: compact fixed-size binary protocol
@@ -8,14 +10,90 @@ A tiny UDP key–value server for internal use where you own both client and ser
 - Persistence: none (in-memory only)
 - Security: all payloads are AES-256-GCM encrypted (client-side encryption, server-side decryption).
 
+### Commands
+
+- `set <key> <value>` – store a value and returns the set value
+- `get <key>` – retrieve a value - always returns a value even if it is empty
+- `delete <key>` – remove a key - returns removed key
+- `exists <key>` – check if a key exists - currently returns a string true/false
+
+### Flags
+
+- `--overwrite` allows existing key to be overwritten on set
+- `--old` returns the previous key independent of any other flags
+
 ---
 
-## Run
+## Library Client
 
-- Port defaults to 4040 when PORT is unset or invalid.
-- Example:
+The Go client library is provided as a thin wrapper around the internal protocol.  
+It requires that every operation is called with a `context.Context` that has a deadline set.  
+If a deadline is not provided, the call will fail immediately.
 
-  PORT=4040 SKVS_ENCRYPTION_KEY=12345678901234567890123456789012 go run ./cmd/server
+### Example
+
+```go
+import (
+    "context"
+    "time"
+    "github.com/thesimpledev/skvs/pkg/skvs"
+)
+
+func main() {
+    c, err := skvs.New("localhost:4040")
+    if err != nil {
+        panic(err)
+    }
+    defer c.Close()
+
+    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+    defer cancel()
+
+    // Set with overwrite
+    _, err = c.Set(ctx, "foo", "bar", true, false)
+    if err != nil {
+        panic(err)
+    }
+
+    // Get
+    val, err := c.Get(ctx, "foo")
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("Value:", val)
+}
+
+
+## CLI Client Usage
+
+A simple CLI is provided for local development and testing.
+
+### Build and Run
+
+Start the server in one terminal:
+
+    PORT=4040 SKVS_ENCRYPTION_KEY=12345678901234567890123456789012 go run ./cmd/server
+
+Then in another terminal run the CLI:
+
+    go run ./cmd/client_cli  [--overwrite] [--old] <command> <key> [value]
+
+
+
+### Examples
+
+    go run ./cmd/client_cli set foo bar
+    go run ./cmd/client_cli get foo
+    go run ./cmd/client_cli --overwrite set foo baz
+    go run ./cmd/client_cli --overwrite --old set foo qux
+    go run ./cmd/client_cli delete foo
+    go run ./cmd/client_cli exists foo
+
+### Notes
+
+- Flags (`--overwrite`, `--old`) must be provided **before** the command due to Gos stdlib `flag` package parsing rules.
+- The CLI always applies the default timeout (`protocol.Timeout`) for requests.
+
 
 ---
 
@@ -23,17 +101,16 @@ A tiny UDP key–value server for internal use where you own both client and ser
 
 The server and client are configured via environment variables:
 
-| Variable            | Description                                                   | Notes                          |
-| ------------------- | ------------------------------------------------------------- | ------------------------------ |
-| PORT                | UDP port for the server to bind. Defaults to 4040.            | Must be numeric.               |
-| SKVS_ENCRYPTION_KEY | 32-byte key for AES-256-GCM encryption. Required.             | Must be exactly 32 bytes long. |
-| SKVS_TIMEOUT        | Default timeout (in seconds) for client operations. Optional. | Defaults to 5.                 |
+| Variable            | Description                                        | Notes                          |
+| ------------------- | -------------------------------------------------- | ------------------------------ |
+| PORT                | UDP port for the server to bind. Defaults to 4040. | Must be numeric.               |
+| SKVS_ENCRYPTION_KEY | 32-byte key for AES-256-GCM encryption. Required.  | Must be exactly 32 bytes long. |
 
 ---
 
 ## Binary Protocol
 
-Each message is a fixed-size 1029-byte frame.  
+Each message is a fixed-size 1029-byte frame.
 The entire frame is encrypted before transport. On the wire, the ciphertext size is 1029 + nonce (12) + tag (16) = 1057 bytes.
 
 ### Layout
@@ -91,16 +168,7 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 
 ## Todo
 
-- Complete binary protocol encoder/decoder.
-- Client library.
-- End-to-end encryption of request and response payloads (AES-256-GCM).
-- Key management via SKVS_ENCRYPTION_KEY env var (validate length).
-- Switch encryption/decryption to log+drop on error, not fatal exit.
-- Document 12-byte nonce size in protocol and README.
-- Optimize buffer reuse with sync.Pool (server).
 - Add debug logging for decoded commands.
-- Evaluate moving key normalization to decode step.
-- Document CLI flag usage order (--overwrite, --old before command).
-- Client.Send: consider returning []byte instead of string.
-- Client: use protocol.DefaultTimeout (5s) instead of hardcoded 2s.
-- Client: support context.Context for cancellation and timeout.
+
+
+```
