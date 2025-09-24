@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -50,7 +51,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Build flags bitmask
 	var flags uint32
 	if *overwrite {
 		flags |= protocol.FLAG_OVERWRITE
@@ -59,7 +59,10 @@ func main() {
 		flags |= protocol.FLAG_OLD
 	}
 
-	resp, err := c.Send(cmd, flags, key, value)
+	ctx, cancel := context.WithTimeout(context.Background(), protocol.Timeout)
+	defer cancel()
+
+	resp, err := c.Send(ctx, cmd, flags, key, value)
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)

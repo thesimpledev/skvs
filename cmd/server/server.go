@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/thesimpledev/skvs/internal/encryption"
 	"github.com/thesimpledev/skvs/internal/protocol"
@@ -24,18 +25,30 @@ func (app *application) serve() error {
 
 	app.log.Info("listening", "address", addr)
 
-	buffer := make([]byte, protocol.EncryptedFrameSize)
+	var bufPool = sync.Pool{
+		New: func() any {
+			buf := make([]byte, protocol.EncryptedFrameSize)
+			return &buf
+		},
+	}
 
 	for {
-		n, clientAddr, err := server.ReadFromUDP(buffer)
+		bufPtr := bufPool.Get().(*[]byte)
+		buf := *bufPtr
+		n, clientAddr, err := server.ReadFromUDP(buf)
 		if err != nil {
 			app.log.Error("failed to read UDP packet", "err", err)
+			bufPool.Put(bufPtr)
 			continue
 		}
 
 		data := make([]byte, n)
-		copy(data, buffer[:n])
-		go app.handlePacket(server, clientAddr, data)
+		copy(data, buf[:n])
+		bufPool.Put(bufPtr)
+		go func() {
+
+			app.handlePacket(server, clientAddr, data)
+		}()
 	}
 }
 

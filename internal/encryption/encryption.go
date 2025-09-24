@@ -6,12 +6,21 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"log"
 	"os"
 )
 
 var key = []byte(os.Getenv("SKVS_ENCRYPTION_KEY"))
 
+func init() {
+	if len(key) != 32 {
+		log.Fatal("SKVS_ENCRYPTION_KEY must be exactly 32 bytes for AES-256-GCM")
+	}
+
+}
+
 func Encrypt(payload []byte) ([]byte, error) {
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("encryption: new cipher: %v", err)
