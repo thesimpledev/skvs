@@ -1,89 +1,44 @@
 package main
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
+
+	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-type command int
+func processMessage(frame []byte) ([]byte, error) {
+	if len(frame) != protocol.FrameSize {
+		return nil, fmt.Errorf("invalid frame size %d", len(frame))
+	}
 
-const (
-	SET command = iota
-	GET
-	DELETE
-	EXISTS
-)
+	cmd := frame[0]
 
-func (c command) String() string {
-	switch c {
-	case SET:
-		return "SET"
-	case GET:
-		return "GET"
-	case DELETE:
-		return "DELETE"
-	case EXISTS:
-		return "EXISTS"
+	flags := uint32(frame[1]) |
+		uint32(frame[2])<<8 |
+		uint32(frame[3])<<16 |
+		uint32(frame[4])<<24
+
+	keyBytes := frame[5 : 5+128]
+	valBytes := frame[5+128 : 5+128+892]
+
+	overwrite := flags&protocol.FLAG_OVERWRITE != 0
+	old := flags&protocol.FLAG_OLD != 0
+
+	key := string(bytes.TrimRight(keyBytes, "\x00"))
+	value := bytes.TrimRight(valBytes, "\x00")
+
+	switch cmd {
+	case protocol.CMD_SET:
+		return set(key, value, overwrite, old)
+	case protocol.CMD_GET:
+		return get(key)
+	case protocol.CMD_DELETE:
+		return del(key)
+	case protocol.CMD_EXISTS:
+		return exists(key)
 	default:
-		return "UNKNOWN"
-	}
-}
-
-func (c *command) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err == nil {
-		switch s {
-		case "SET":
-			*c = SET
-			return nil
-		case "GET":
-			*c = GET
-			return nil
-		case "DELETE":
-			*c = DELETE
-			return nil
-		case "EXISTS":
-			*c = EXISTS
-			return nil
-		default:
-			return fmt.Errorf("unknown command %q", s)
-		}
+		return nil, fmt.Errorf("unknown command: %d", cmd)
 	}
 
-	var i int
-	if err := json.Unmarshal(data, &i); err == nil {
-		*c = command(i)
-		return nil
-	}
-
-	return fmt.Errorf("invalid command: %s", string(data))
-}
-
-type Message struct {
-	Command   command `json:"command"`
-	Key       string  `json:"key"`
-	Value     string  `json:"value,omitempty"`
-	Overwrite bool    `json:"overwrite,omitempty"`
-	Old       bool    `json:"old,omitempty"`
-}
-
-func processMessage(message string) (string, error) {
-	var input Message
-	err := json.Unmarshal([]byte(message), &input)
-	if err != nil {
-		return "", err
-	}
-
-	switch input.Command {
-	case SET:
-		return set(input.Key, input.Value, input.Overwrite, input.Old)
-	case GET:
-		return get(input.Key)
-	case DELETE:
-		return del(input.Key)
-	case EXISTS:
-		return exists(input.Key)
-	default:
-		return "", fmt.Errorf("command %s", input.Command)
-	}
 }

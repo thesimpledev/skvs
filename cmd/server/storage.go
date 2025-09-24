@@ -3,6 +3,6 @@ package main
 import "sync"
 
 var (
-	skvs = make(map[string]string)
+	skvs = make(map[string][]byte)
 	mu   sync.RWMutex
 )
