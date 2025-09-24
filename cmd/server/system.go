@@ -19,8 +19,9 @@ func processMessage(frame []byte) ([]byte, error) {
 		uint32(frame[3])<<16 |
 		uint32(frame[4])<<24
 
-	keyBytes := frame[5 : 5+128]
-	valBytes := frame[5+128 : 5+128+892]
+	start := protocol.CommandSize + protocol.FlagSize
+	keyBytes := frame[start : start+protocol.KeySize]
+	valBytes := frame[start+protocol.KeySize : start+protocol.KeySize+protocol.ValueSize]
 
 	overwrite := flags&protocol.FLAG_OVERWRITE != 0
 	old := flags&protocol.FLAG_OLD != 0

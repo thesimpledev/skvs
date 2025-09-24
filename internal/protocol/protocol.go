@@ -11,6 +11,8 @@ const (
 	FLAG_OVERWRITE = 1 << 0
 	FLAG_OLD       = 1 << 1
 
+	CommandSize        = 1
+	FlagSize           = 4
 	FrameSize          = 996
 	EncryptedFrameSize = 1024
 	KeySize            = 128
