@@ -89,5 +89,5 @@ func (c *Client) Exists(ctx context.Context, key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return resp == "true", nil
+	return resp == "1", nil
 }

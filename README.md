@@ -110,8 +110,8 @@ The server and client are configured via environment variables:
 
 ## Binary Protocol
 
-Each message is a fixed-size 1029-byte frame.
-The entire frame is encrypted before transport. On the wire, the ciphertext size is 1029 + nonce (12) + tag (16) = 1057 bytes.
+Each message is a fixed-size 1024-byte frame.
+The entire frame is encrypted before transport. On the wire, the ciphertext size is 996 + nonce (12) + tag (16) = 1024 bytes.
 
 ### Layout
 
@@ -120,8 +120,8 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 | 0      | 1 B    | Command | 0=SET, 1=GET, 2=DELETE, 3=EXISTS (up to 256 total). |
 | 1      | 4 B    | Flags   | 32-bit bitmask; each bit is an independent toggle.  |
 | 5      | 128 B  | Key     | UTF-8 string, null-padded if shorter.               |
-| 133    | 892 B  | Value   | UTF-8 string, null-padded if shorter.               |
-| Total  | 1029 B | Frame   | Fixed size plaintext, encrypted as a whole.         |
+| 133    | 863 B  | Value   | UTF-8 string, null-padded if shorter.               |
+| Total  | 996 B | Frame   | Fixed size plaintext, encrypted as a whole.         |
 
 ---
 
@@ -150,7 +150,7 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 ## Operational Notes
 
 - One UDP datagram = one operation.
-- Plaintext frames are always 1029 bytes; ciphertext datagrams are 1057 bytes.
+- Plaintext frames are always 1024 bytes; ciphertext datagrams are 1057 bytes.
 - Server responses are short binary or string payloads. Errors are returned as generic "ERROR: failed to process message".
 - Reads scale via RLock for GET/EXISTS; writes (SET/DELETE) take a short exclusive Lock.
 - Data is volatile — lost on restart.
@@ -169,6 +169,7 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 ## Todo
 
 - Add debug logging for decoded commands.
+- Response typing: External client (Do) returns string, while the internal client returns []byte. May want to address
 
 
 ```

@@ -39,8 +39,8 @@ func exists(key string) ([]byte, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	if _, exists := skvs[key]; exists {
-		return []byte("true"), nil
+		return []byte("1"), nil
 	}
 
-	return []byte("false"), nil
+	return []byte("0"), nil
 }
