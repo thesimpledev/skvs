@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
+
+	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
 type config struct {
@@ -20,8 +23,8 @@ func main() {
 
 	port, err := strconv.Atoi(os.Getenv("PORT"))
 	if err != nil {
-		logger.Info("invalid or missing PORT, defaulting to 4000")
-		port = 4000
+		logger.Info(fmt.Sprintf("invalid or missing PORT, defaulting to %d", protocol.Port))
+		port = protocol.Port
 	}
 
 	config := &config{

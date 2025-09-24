@@ -3,12 +3,20 @@ package main
 import (
 	"fmt"
 	"net"
+
+	"github.com/thesimpledev/skvs/internal/encryption"
+	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
 func (app *application) serve() error {
 	addr := fmt.Sprintf(":%d", app.cfg.port)
 
-	server, err := net.Listen("tcp", addr)
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to resolve UDP addr %s: %w", addr, err)
+	}
+
+	server, err := net.ListenUDP("udp", udpAddr)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
@@ -16,50 +24,50 @@ func (app *application) serve() error {
 
 	app.log.Info("listening", "address", addr)
 
+	buffer := make([]byte, protocol.EncryptedFrameSize)
+
 	for {
-		connection, err := server.Accept()
+		n, clientAddr, err := server.ReadFromUDP(buffer)
 		if err != nil {
-			app.log.Error("failed to accept connection", "err", err)
+			app.log.Error("failed to read UDP packet", "err", err)
 			continue
 		}
 
-		go app.handleConnection(connection)
+		data := make([]byte, n)
+		copy(data, buffer[:n])
+		go app.handlePacket(server, clientAddr, data)
 	}
-
 }
 
-func (app *application) handleConnection(connection net.Conn) {
-	defer connection.Close()
-
-	buffer := make([]byte, 1024)
-	bytesRead, err := connection.Read(buffer)
+func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAddr, data []byte) {
+	payload, err := encryption.Decrypt(data)
 	if err != nil {
-		app.log.Error("failed to read from connection", "err", err)
+		app.log.Error("Decrypt failed", "Err", err)
+		app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
 		return
 	}
 
-	encodedPayload := string(buffer[:bytesRead])
-
-	decodedPayload := app.decrypt(encodedPayload)
-	response, err := processMessage(decodedPayload)
+	response, err := processMessage(payload)
 	if err != nil {
 		app.log.Error("failed to process message", "err", err)
-		app.sendMessage("ERROR: failed to process message", connection)
+		app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
 		return
 	}
 
-	app.sendMessage(response, connection)
+	encryptedResponse, err := encryption.Encrypt(response)
+	if err != nil {
+		app.log.Error("Encryption failed", "Err", err)
+		app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
+		return
+	}
 
+	app.sendMessage(encryptedResponse, server, clientAddr)
 }
 
-func (app *application) sendMessage(message string, connection net.Conn) {
-	_, err := connection.Write([]byte(message))
+func (app *application) sendMessage(message []byte, server *net.UDPConn, clientAddr *net.UDPAddr) {
+	_, err := server.WriteToUDP(message, clientAddr)
 	if err != nil {
 		app.log.Error("failed to write response", "err", err)
 		return
 	}
-}
-
-func (app *application) decrypt(payload string) string {
-	return payload
 }

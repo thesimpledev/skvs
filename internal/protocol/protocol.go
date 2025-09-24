@@ -1,0 +1,20 @@
+package protocol
+
+import "time"
+
+const (
+	CMD_SET    = 0
+	CMD_GET    = 1
+	CMD_DELETE = 2
+	CMD_EXISTS = 3
+
+	FLAG_OVERWRITE = 1 << 0
+	FLAG_OLD       = 1 << 1
+
+	FrameSize          = 1029
+	EncryptedFrameSize = 1057
+	KeySize            = 128
+	ValueSize          = 892
+	Port               = 4040
+	Timeout            = 5 * time.Second
+)

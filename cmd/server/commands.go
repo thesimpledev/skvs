@@ -1,7 +1,7 @@
 package main
 
-func set(key, value string, overwrite, old bool) (string, error) {
-	var returnValue string
+func set(key string, value []byte, overwrite, old bool) ([]byte, error) {
+	var returnValue []byte
 	mu.Lock()
 	defer mu.Unlock()
 	if old {
@@ -21,13 +21,13 @@ func set(key, value string, overwrite, old bool) (string, error) {
 	return returnValue, nil
 }
 
-func get(key string) (string, error) {
+func get(key string) ([]byte, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	return skvs[key], nil
 }
 
-func del(key string) (string, error) {
+func del(key string) ([]byte, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	returnValue := skvs[key]
@@ -35,12 +35,12 @@ func del(key string) (string, error) {
 	return returnValue, nil
 }
 
-func exists(key string) (string, error) {
+func exists(key string) ([]byte, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	if _, exists := skvs[key]; exists {
-		return "true", nil
+		return []byte("true"), nil
 	}
 
-	return "false", nil
+	return []byte("false"), nil
 }
