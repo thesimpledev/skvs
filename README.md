@@ -94,3 +94,39 @@ Returns the string "true" if the key exists, otherwise "false".
 
 Implement encryption for payloads and responses.
 Create client library
+
+## Binary Protocol (Planned)
+
+To reduce parsing overhead and keep message sizes consistent, the server will support a fixed-size binary protocol. Each message is exactly **1024 bytes**.
+
+### Layout
+
+| Offset | Size   | Field   | Notes                                      |
+| ------ | ------ | ------- | ------------------------------------------ |
+| 0      | 1 byte | Flags   | bit 0 = overwrite, bit 1 = old             |
+| 1      | 1 byte | Command | 0=SET, 1=GET, 2=DELETE, 3=EXISTS           |
+| 2      | 128 B  | Key     | ASCII/UTF-8 string, null-padded if shorter |
+| 130    | 892 B  | Value   | ASCII/UTF-8 string, null-padded if shorter |
+| Total  | 1024 B | Message | Fixed size                                 |
+
+### Example
+
+- **SET key=foo, value=bar**
+  - Flags = `00000001` (overwrite=true, old=false)
+  - Command = `0` (SET)
+  - Key field = `"foo"` + 125 null bytes
+  - Value field = `"bar"` + 889 null bytes
+
+### Benefits
+
+- Constant 1024-byte messages (simple to read/write).
+- Parsing requires no dynamic length checks.
+- Perfectly aligned with existing buffer size.
+- Supports up to 128-character keys and 892-character values.
+- Memory footprint: ~1 KB per entry (≈1 GB for 1M entries before Go map overhead).
+
+### Notes
+
+- Keys and values are treated as ASCII/UTF-8.
+- Multi-byte UTF-8 characters reduce effective character count (e.g., emoji).
+- For JWT expiry (the primary use case), keys will be ASCII (UUIDs, hashes, usernames) and values will be timestamps, so this is not a limitation.
