@@ -15,13 +15,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: "1.25"
 
       - name: Run go vet
         run: go vet ./...
 
       - name: Run tests with coverage
-        run: go test -coverprofile=coverage.txt ./...
+        run: go test -coverprofile=coverage.txt
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
