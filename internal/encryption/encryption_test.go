@@ -25,6 +25,27 @@ func TestNew(t *testing.T) {
 			t.Fatal("expected error for short key, got nil")
 		}
 	})
+
+	t.Run("nil key uses environment", func(t *testing.T) {
+		t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
+
+		enc, err := New(nil)
+		if err != nil {
+			t.Fatalf("expected no error with env key, got %v", err)
+		}
+		if enc == nil {
+			t.Fatal("expected encryptor, got nil")
+		}
+	})
+
+	t.Run("nil key with missing env", func(t *testing.T) {
+		t.Setenv("SKVS_ENCRYPTION_KEY", "") // ensure it's empty
+
+		_, err := New(nil)
+		if err == nil {
+			t.Fatal("expected error when key is nil and env is empty")
+		}
+	})
 }
 
 func TestEncryptDecrypt(t *testing.T) {
