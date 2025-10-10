@@ -1,0 +1,3 @@
+coverage:
+  ignore:
+    - "cmd/client_cli"
