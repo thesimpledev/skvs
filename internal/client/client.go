@@ -59,11 +59,14 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 	if err != nil {
 		return nil, fmt.Errorf("encryption failed: %w", err)
 	}
+	if len(encrypted) != protocol.EncryptedFrameSize {
+		return nil, fmt.Errorf("encrypted frame size mismatch: got %d, want %d", len(encrypted), protocol.EncryptedFrameSize)
+	}
 
 	var lastError error
 	for attempt := range maxAttempts {
 		if attempt > 0 {
-			delay := baseDelay * (1 << (attempt - 1))
+			delay := min(baseDelay*(1<<(attempt-1)), time.Second)
 			select {
 			case <-time.After(delay):
 			case <-ctx.Done():
@@ -82,7 +85,7 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 
 		buf := make([]byte, protocol.EncryptedFrameSize)
 
-		n, _, err := c.conn.ReadFromUDP(buf)
+		n, err := c.conn.Read(buf)
 		if err != nil {
 			lastError = fmt.Errorf("read response: %w", err)
 			continue
