@@ -4,8 +4,7 @@ The Simple Key Value Server is a tiny UDP key–value server for a personal proj
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/thesimpledev/skvs)](https://goreportcard.com/report/github.com/thesimpledev/skvs)
 
-[![GoDoc](https://pkg.go.dev/badge/github.com/thesimpledev/skvs)](https://pkg.go.dev/github.com/thesimpledev/skvs)
-[![License](https://img.shields.io/github/license/thesimpledev/skvs)](https://github.com/thesimpledev/skvs/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/thesimpledev/skvs)](https://github.com/thesimpledev/skvs/blob/master/LICENSE)
 [![Release](https://img.shields.io/github/v/release/thesimpledev/skvs)](https://github.com/thesimpledev/skvs/releases)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/thesimpledev/skvs)](https://github.com/thesimpledev/skvs)
 ## Features
