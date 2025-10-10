@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/thesimpledev/skvs/internal/client"
+	"github.com/thesimpledev/skvs/internal/encryption"
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
@@ -21,7 +22,7 @@ func TestServerIntegration(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	app := &application{
-		cfg: &config{port: 0}, // 0 = OS assigns random available port
+		cfg: &config{port: 0},
 		log: logger,
 	}
 
@@ -209,4 +210,155 @@ func TestServerIntegration(t *testing.T) {
 			t.Errorf("GET after old flag: got %q, want %q", string(resp), "newvalue")
 		}
 	})
+}
+
+func TestHandlePacketDecryptFailure(t *testing.T) {
+	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	app := &application{
+		cfg: &config{port: 0},
+		log: logger,
+	}
+
+	// Create a UDP server to receive the error response
+	responseConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 0})
+	if err != nil {
+		t.Fatalf("Failed to create response listener: %v", err)
+	}
+	defer responseConn.Close()
+
+	responseAddr := responseConn.LocalAddr().(*net.UDPAddr)
+
+	// Create a UDP connection for the server to write to
+	serverConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 0})
+	if err != nil {
+		t.Fatalf("Failed to create server conn: %v", err)
+	}
+	defer serverConn.Close()
+
+	// Send invalid encrypted data
+	invalidData := []byte("this is not properly encrypted data")
+
+	done := make(chan bool)
+	go func() {
+		app.handlePacket(serverConn, responseAddr, invalidData)
+		done <- true
+	}()
+
+	// Wait for response
+	responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	buf := make([]byte, 1024)
+	n, _, err := responseConn.ReadFromUDP(buf)
+	if err != nil {
+		t.Fatalf("Expected error response, got error: %v", err)
+	}
+
+	response := string(buf[:n])
+	if response != "ERROR: failed to process message" {
+		t.Errorf("Expected error message, got: %q", response)
+	}
+
+	<-done
+}
+
+func TestHandlePacketInvalidMessage(t *testing.T) {
+	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	app := &application{
+		cfg: &config{port: 0},
+		log: logger,
+	}
+
+	// Create encryption
+	enc, err := encryption.New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create encryptor: %v", err)
+	}
+
+	// Create a UDP server to receive the error response
+	responseConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 0})
+	if err != nil {
+		t.Fatalf("Failed to create response listener: %v", err)
+	}
+	defer responseConn.Close()
+
+	responseAddr := responseConn.LocalAddr().(*net.UDPAddr)
+
+	// Create a UDP connection for the server to write to
+	serverConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 0})
+	if err != nil {
+		t.Fatalf("Failed to create server conn: %v", err)
+	}
+	defer serverConn.Close()
+
+	// Send properly encrypted but invalid protocol message (too short)
+	invalidPayload := []byte{0xFF} // Invalid command, too short
+	encryptedData, err := enc.Encrypt(invalidPayload)
+	if err != nil {
+		t.Fatalf("Failed to encrypt: %v", err)
+	}
+
+	done := make(chan bool)
+	go func() {
+		app.handlePacket(serverConn, responseAddr, encryptedData)
+		done <- true
+	}()
+
+	// Wait for response
+	responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	buf := make([]byte, 1024)
+	n, _, err := responseConn.ReadFromUDP(buf)
+	if err != nil {
+		t.Fatalf("Expected error response, got error: %v", err)
+	}
+
+	response := string(buf[:n])
+	if response != "ERROR: failed to process message" {
+		t.Errorf("Expected error message, got: %q", response)
+	}
+
+	<-done
+}
+
+func TestSendMessage(t *testing.T) {
+	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	app := &application{
+		cfg: &config{port: 0},
+		log: logger,
+	}
+
+	// Create a UDP server to receive the message
+	responseConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 0})
+	if err != nil {
+		t.Fatalf("Failed to create response listener: %v", err)
+	}
+	defer responseConn.Close()
+
+	responseAddr := responseConn.LocalAddr().(*net.UDPAddr)
+
+	// Create a UDP connection for sending
+	serverConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 0})
+	if err != nil {
+		t.Fatalf("Failed to create server conn: %v", err)
+	}
+	defer serverConn.Close()
+
+	testMessage := []byte("test message")
+	app.sendMessage(testMessage, serverConn, responseAddr)
+
+	// Wait for message
+	responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	buf := make([]byte, 1024)
+	n, _, err := responseConn.ReadFromUDP(buf)
+	if err != nil {
+		t.Fatalf("Failed to receive message: %v", err)
+	}
+
+	if string(buf[:n]) != string(testMessage) {
+		t.Errorf("Expected %q, got %q", testMessage, buf[:n])
+	}
 }
