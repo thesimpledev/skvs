@@ -67,9 +67,9 @@
 				
 				<option value="file5">github.com/thesimpledev/skvs/cmd/server/system.go (0.0%)</option>
 				
-				<option value="file6">github.com/thesimpledev/skvs/internal/client/client.go (0.0%)</option>
+				<option value="file6">github.com/thesimpledev/skvs/internal/client/client.go (88.0%)</option>
 				
-				<option value="file7">github.com/thesimpledev/skvs/internal/encryption/encryption.go (78.6%)</option>
+				<option value="file7">github.com/thesimpledev/skvs/internal/encryption/encryption.go (82.1%)</option>
 				
 				</select>
 			</div>
@@ -488,7 +488,8 @@ func processMessage(frame []byte) ([]byte, error) <span class="cov0" title="0">{
 }
 </pre>
 		
-		<pre class="file" id="file6" style="display: none">package client
+		<pre class="file" id="file6" style="display: none">// Package client provides a client for the skvs service.
+package client
 
 import (
         "context"
@@ -510,31 +511,31 @@ type Client struct {
         conn *net.UDPConn
 }
 
-func New(serverAddr string) (*Client, error) <span class="cov0" title="0">{
+func New(serverAddr string) (*Client, error) <span class="cov8" title="1">{
         udpAddr, err := net.ResolveUDPAddr("udp", serverAddr)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("resolve addr: %w", err)
         }</span>
 
-        <span class="cov0" title="0">conn, err := net.DialUDP("udp", nil, udpAddr)
+        <span class="cov8" title="1">conn, err := net.DialUDP("udp", nil, udpAddr)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("dial udp: %w", err)
         }</span>
 
-        <span class="cov0" title="0">return &amp;Client{addr: udpAddr, conn: conn}, nil</span>
+        <span class="cov8" title="1">return &amp;Client{addr: udpAddr, conn: conn}, nil</span>
 }
 
-func (c *Client) Close() <span class="cov0" title="0">{
+func (c *Client) Close() <span class="cov8" title="1">{
         c.conn.Close()
 }</span>
 
-func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, value string) ([]byte, error) <span class="cov0" title="0">{
+func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, value string) ([]byte, error) <span class="cov8" title="1">{
         deadline, ok := ctx.Deadline()
-        if !ok </span><span class="cov0" title="0">{
+        if !ok </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("Send requires a context with deadline")
         }</span>
 
-        <span class="cov0" title="0">frame := make([]byte, protocol.FrameSize)
+        <span class="cov8" title="1">frame := make([]byte, protocol.FrameSize)
         // Building the frame manually. While I could use the encoding/binary package I decided doing it by hand would be more clear.
         frame[0] = command
         frame[1] = byte(flags)
@@ -546,53 +547,53 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
         copy(frame[5+protocol.KeySize:], []byte(value))
 
         e, err := encryption.New(nil)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("Failed to create Encryptor: %w", err)
         }</span>
 
-        <span class="cov0" title="0">encrypted, err := e.Encrypt(frame)
+        <span class="cov8" title="1">encrypted, err := e.Encrypt(frame)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("encryption failed: %w", err)
         }</span>
-        <span class="cov0" title="0">if len(encrypted) != protocol.EncryptedFrameSize </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if len(encrypted) != protocol.EncryptedFrameSize </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("encrypted frame size mismatch: got %d, want %d", len(encrypted), protocol.EncryptedFrameSize)
         }</span>
 
-        <span class="cov0" title="0">var lastError error
-        for attempt := range maxAttempts </span><span class="cov0" title="0">{
-                if attempt &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">var lastError error
+        for attempt := range maxAttempts </span><span class="cov8" title="1">{
+                if attempt &gt; 0 </span><span class="cov8" title="1">{
                         delay := min(baseDelay*(1&lt;&lt;(attempt-1)), time.Second)
                         select </span>{
-                        case &lt;-time.After(delay):<span class="cov0" title="0"></span>
-                        case &lt;-ctx.Done():<span class="cov0" title="0">
+                        case &lt;-time.After(delay):<span class="cov8" title="1"></span>
+                        case &lt;-ctx.Done():<span class="cov8" title="1">
                                 return nil, ctx.Err()</span>
                         }
                 }
 
-                <span class="cov0" title="0">_ = c.conn.SetWriteDeadline(deadline)
+                <span class="cov8" title="1">_ = c.conn.SetWriteDeadline(deadline)
                 _ = c.conn.SetReadDeadline(deadline)
 
                 _, err = c.conn.Write(encrypted)
-                if err != nil </span><span class="cov0" title="0">{
+                if err != nil </span><span class="cov8" title="1">{
                         lastError = fmt.Errorf("send frame: %w", err)
                         continue</span>
                 }
 
-                <span class="cov0" title="0">buf := make([]byte, protocol.EncryptedFrameSize)
+                <span class="cov8" title="1">buf := make([]byte, protocol.EncryptedFrameSize)
 
                 n, err := c.conn.Read(buf)
-                if err != nil </span><span class="cov0" title="0">{
+                if err != nil </span><span class="cov8" title="1">{
                         lastError = fmt.Errorf("read response: %w", err)
                         continue</span>
                 }
 
-                <span class="cov0" title="0">decrypted, err := e.Decrypt(buf[:n])
+                <span class="cov8" title="1">decrypted, err := e.Decrypt(buf[:n])
                 if err != nil </span><span class="cov0" title="0">{
                         lastError = fmt.Errorf("decryption failed: %w", err)
                         continue</span>
                 }
 
-                <span class="cov0" title="0">return decrypted, nil</span>
+                <span class="cov8" title="1">return decrypted, nil</span>
         }
 
         <span class="cov0" title="0">return nil, fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastError)</span>
@@ -617,7 +618,7 @@ type Encryptor struct {
 }
 
 func New(key []byte) (*Encryptor, error) <span class="cov8" title="1">{
-        if key == nil </span><span class="cov0" title="0">{
+        if key == nil </span><span class="cov8" title="1">{
                 key = []byte(os.Getenv("SKVS_ENCRYPTION_KEY"))
         }</span>
 
