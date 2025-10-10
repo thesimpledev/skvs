@@ -39,7 +39,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("nil key with missing env", func(t *testing.T) {
-		t.Setenv("SKVS_ENCRYPTION_KEY", "") // ensure it's empty
+		t.Setenv("SKVS_ENCRYPTION_KEY", "")
 
 		_, err := New(nil)
 		if err == nil {

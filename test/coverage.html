@@ -59,13 +59,13 @@
 				
 				<option value="file1">github.com/thesimpledev/skvs/cmd/client_lib/main.go (0.0%)</option>
 				
-				<option value="file2">github.com/thesimpledev/skvs/cmd/server/commands.go (0.0%)</option>
+				<option value="file2">github.com/thesimpledev/skvs/cmd/server/commands.go (100.0%)</option>
 				
 				<option value="file3">github.com/thesimpledev/skvs/cmd/server/main.go (0.0%)</option>
 				
-				<option value="file4">github.com/thesimpledev/skvs/cmd/server/server.go (0.0%)</option>
+				<option value="file4">github.com/thesimpledev/skvs/cmd/server/server.go (22.9%)</option>
 				
-				<option value="file5">github.com/thesimpledev/skvs/cmd/server/system.go (0.0%)</option>
+				<option value="file5">github.com/thesimpledev/skvs/cmd/server/system.go (100.0%)</option>
 				
 				<option value="file6">github.com/thesimpledev/skvs/internal/client/client.go (88.0%)</option>
 				
@@ -96,7 +96,6 @@ import (
 )
 
 func main() <span class="cov0" title="0">{
-        // Define CLI flags
         overwrite := flag.Bool("overwrite", false, "Allow overwriting existing values")
         old := flag.Bool("old", false, "Return the previous value if available")
         flag.Parse()
@@ -167,7 +166,6 @@ import (
         "github.com/thesimpledev/skvs/internal/protocol"
 )
 
-// Public command constants
 const (
         CommandSet    = "SET"
         CommandGet    = "GET"
@@ -175,7 +173,6 @@ const (
         CommandExists = "EXISTS"
 )
 
-// Request models a single operation against the server.
 type Request struct {
         Command   string
         Key       string
@@ -184,12 +181,10 @@ type Request struct {
         Old       bool
 }
 
-// Client is the external-facing SKVS client.
 type Client struct {
         *client.Client
 }
 
-// New creates a new client connected to the given addr.
 func New(addr string) (*Client, error) <span class="cov0" title="0">{
         c, err := client.New(addr)
         if err != nil </span><span class="cov0" title="0">{
@@ -198,7 +193,6 @@ func New(addr string) (*Client, error) <span class="cov0" title="0">{
         <span class="cov0" title="0">return &amp;Client{c}, nil</span>
 }
 
-// Do executes a Request.
 func (c *Client) Do(ctx context.Context, req Request) (string, error) <span class="cov0" title="0">{
         var cmd byte
         switch req.Command </span>{
@@ -229,8 +223,6 @@ func (c *Client) Do(ctx context.Context, req Request) (string, error) <span clas
         <span class="cov0" title="0">return string(resp), nil</span>
 }
 
-// Convenience helpers ---------------------------------------------------------
-
 func (c *Client) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) <span class="cov0" title="0">{
         return c.Do(ctx, Request{Command: CommandSet, Key: key, Value: value, Overwrite: overwrite, Old: old})
 }</span>
@@ -254,34 +246,34 @@ func (c *Client) Exists(ctx context.Context, key string) (bool, error) <span cla
 		
 		<pre class="file" id="file2" style="display: none">package main
 
-func set(key string, value []byte, overwrite, old bool) ([]byte, error) <span class="cov0" title="0">{
+func set(key string, value []byte, overwrite, old bool) ([]byte, error) <span class="cov8" title="1">{
         var returnValue []byte
         mu.Lock()
         defer mu.Unlock()
-        if old </span><span class="cov0" title="0">{
+        if old </span><span class="cov8" title="1">{
                 returnValue = skvs[key]
         }</span>
 
-        <span class="cov0" title="0">if oldValue, exists := skvs[key]; !exists || overwrite </span><span class="cov0" title="0">{
-                if !old </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if oldValue, exists := skvs[key]; !exists || overwrite </span><span class="cov8" title="1">{
+                if !old </span><span class="cov8" title="1">{
                         returnValue = value
                 }</span>
 
-                <span class="cov0" title="0">skvs[key] = value</span>
-        } else<span class="cov0" title="0"> {
+                <span class="cov8" title="1">skvs[key] = value</span>
+        } else<span class="cov8" title="1"> {
                 returnValue = oldValue
         }</span>
 
-        <span class="cov0" title="0">return returnValue, nil</span>
+        <span class="cov8" title="1">return returnValue, nil</span>
 }
 
-func get(key string) ([]byte, error) <span class="cov0" title="0">{
+func get(key string) ([]byte, error) <span class="cov8" title="1">{
         mu.RLock()
         defer mu.RUnlock()
         return skvs[key], nil
 }</span>
 
-func del(key string) ([]byte, error) <span class="cov0" title="0">{
+func del(key string) ([]byte, error) <span class="cov8" title="1">{
         mu.Lock()
         defer mu.Unlock()
         returnValue := skvs[key]
@@ -289,14 +281,14 @@ func del(key string) ([]byte, error) <span class="cov0" title="0">{
         return returnValue, nil
 }</span>
 
-func exists(key string) ([]byte, error) <span class="cov0" title="0">{
+func exists(key string) ([]byte, error) <span class="cov8" title="1">{
         mu.RLock()
         defer mu.RUnlock()
-        if _, exists := skvs[key]; exists </span><span class="cov0" title="0">{
+        if _, exists := skvs[key]; exists </span><span class="cov8" title="1">{
                 return []byte("1"), nil
         }</span>
 
-        <span class="cov0" title="0">return []byte("0"), nil</span>
+        <span class="cov8" title="1">return []byte("0"), nil</span>
 }
 </pre>
 		
@@ -403,36 +395,36 @@ func (app *application) serve() error <span class="cov0" title="0">{
         }
 }
 
-func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAddr, data []byte) <span class="cov0" title="0">{
+func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAddr, data []byte) <span class="cov8" title="1">{
         e, err := encryption.New(nil)
         if err != nil </span><span class="cov0" title="0">{
                 app.log.Error("Unable to create Encryptor", "err", err)
         }</span>
-        <span class="cov0" title="0">payload, err := e.Decrypt(data)
+        <span class="cov8" title="1">payload, err := e.Decrypt(data)
         if err != nil </span><span class="cov0" title="0">{
                 app.log.Error("Decrypt failed", "Err", err)
                 app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
                 return
         }</span>
 
-        <span class="cov0" title="0">response, err := processMessage(payload)
+        <span class="cov8" title="1">response, err := processMessage(payload)
         if err != nil </span><span class="cov0" title="0">{
                 app.log.Error("failed to process message", "err", err)
                 app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
                 return
         }</span>
 
-        <span class="cov0" title="0">encryptedResponse, err := e.Encrypt(response)
+        <span class="cov8" title="1">encryptedResponse, err := e.Encrypt(response)
         if err != nil </span><span class="cov0" title="0">{
                 app.log.Error("Encryption failed", "Err", err)
                 app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
                 return
         }</span>
 
-        <span class="cov0" title="0">app.sendMessage(encryptedResponse, server, clientAddr)</span>
+        <span class="cov8" title="1">app.sendMessage(encryptedResponse, server, clientAddr)</span>
 }
 
-func (app *application) sendMessage(message []byte, server *net.UDPConn, clientAddr *net.UDPAddr) <span class="cov0" title="0">{
+func (app *application) sendMessage(message []byte, server *net.UDPConn, clientAddr *net.UDPAddr) <span class="cov8" title="1">{
         _, err := server.WriteToUDP(message, clientAddr)
         if err != nil </span><span class="cov0" title="0">{
                 app.log.Error("failed to write response", "err", err)
@@ -450,12 +442,12 @@ import (
         "github.com/thesimpledev/skvs/internal/protocol"
 )
 
-func processMessage(frame []byte) ([]byte, error) <span class="cov0" title="0">{
-        if len(frame) != protocol.FrameSize </span><span class="cov0" title="0">{
+func processMessage(frame []byte) ([]byte, error) <span class="cov8" title="1">{
+        if len(frame) != protocol.FrameSize </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("invalid frame size %d", len(frame))
         }</span>
 
-        <span class="cov0" title="0">cmd := frame[0]
+        <span class="cov8" title="1">cmd := frame[0]
 
         flags := uint32(frame[1]) |
                 uint32(frame[2])&lt;&lt;8 |
@@ -473,15 +465,15 @@ func processMessage(frame []byte) ([]byte, error) <span class="cov0" title="0">{
         value := bytes.TrimRight(valBytes, "\x00")
 
         switch cmd </span>{
-        case protocol.CMD_SET:<span class="cov0" title="0">
+        case protocol.CMD_SET:<span class="cov8" title="1">
                 return set(key, value, overwrite, old)</span>
-        case protocol.CMD_GET:<span class="cov0" title="0">
+        case protocol.CMD_GET:<span class="cov8" title="1">
                 return get(key)</span>
-        case protocol.CMD_DELETE:<span class="cov0" title="0">
+        case protocol.CMD_DELETE:<span class="cov8" title="1">
                 return del(key)</span>
-        case protocol.CMD_EXISTS:<span class="cov0" title="0">
+        case protocol.CMD_EXISTS:<span class="cov8" title="1">
                 return exists(key)</span>
-        default:<span class="cov0" title="0">
+        default:<span class="cov8" title="1">
                 return nil, fmt.Errorf("unknown command: %d", cmd)</span>
         }
 
