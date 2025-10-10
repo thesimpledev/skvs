@@ -9,8 +9,8 @@ const (
 	CMD_DELETE = 2
 	CMD_EXISTS = 3
 
-	FLAG_OVERWRITE = 1 << 0
-	FLAG_OLD       = 1 << 1
+	FLAG_OVERWRITE uint32 = 1 << 0
+	FLAG_OLD       uint32 = 1 << 1
 
 	CommandSize        = 1
 	FlagSize           = 4

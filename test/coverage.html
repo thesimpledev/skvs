@@ -57,7 +57,7 @@
 				
 				<option value="file0">github.com/thesimpledev/skvs/cmd/client_cli/main.go (0.0%)</option>
 				
-				<option value="file1">github.com/thesimpledev/skvs/cmd/client_lib/main.go (0.0%)</option>
+				<option value="file1">github.com/thesimpledev/skvs/cmd/client_lib/main.go (100.0%)</option>
 				
 				<option value="file2">github.com/thesimpledev/skvs/cmd/server/commands.go (100.0%)</option>
 				
@@ -185,62 +185,62 @@ type Client struct {
         *client.Client
 }
 
-func New(addr string) (*Client, error) <span class="cov0" title="0">{
+func New(addr string) (*Client, error) <span class="cov8" title="1">{
         c, err := client.New(addr)
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("create client: %w", err)
         }</span>
-        <span class="cov0" title="0">return &amp;Client{c}, nil</span>
+        <span class="cov8" title="1">return &amp;Client{c}, nil</span>
 }
 
-func (c *Client) Do(ctx context.Context, req Request) (string, error) <span class="cov0" title="0">{
+func (c *Client) Do(ctx context.Context, req Request) (string, error) <span class="cov8" title="1">{
         var cmd byte
         switch req.Command </span>{
-        case CommandSet:<span class="cov0" title="0">
+        case CommandSet:<span class="cov8" title="1">
                 cmd = protocol.CMD_SET</span>
-        case CommandGet:<span class="cov0" title="0">
+        case CommandGet:<span class="cov8" title="1">
                 cmd = protocol.CMD_GET</span>
-        case CommandDelete:<span class="cov0" title="0">
+        case CommandDelete:<span class="cov8" title="1">
                 cmd = protocol.CMD_DELETE</span>
-        case CommandExists:<span class="cov0" title="0">
+        case CommandExists:<span class="cov8" title="1">
                 cmd = protocol.CMD_EXISTS</span>
-        default:<span class="cov0" title="0">
+        default:<span class="cov8" title="1">
                 return "", fmt.Errorf("unknown command: %s", req.Command)</span>
         }
 
-        <span class="cov0" title="0">var flags uint32
-        if req.Overwrite </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">var flags uint32
+        if req.Overwrite </span><span class="cov8" title="1">{
                 flags |= protocol.FLAG_OVERWRITE
         }</span>
-        <span class="cov0" title="0">if req.Old </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if req.Old </span><span class="cov8" title="1">{
                 flags |= protocol.FLAG_OLD
         }</span>
 
-        <span class="cov0" title="0">resp, err := c.Send(ctx, cmd, flags, req.Key, req.Value)
-        if err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">resp, err := c.Send(ctx, cmd, flags, req.Key, req.Value)
+        if err != nil </span><span class="cov8" title="1">{
                 return "", err
         }</span>
-        <span class="cov0" title="0">return string(resp), nil</span>
+        <span class="cov8" title="1">return string(resp), nil</span>
 }
 
-func (c *Client) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) <span class="cov0" title="0">{
+func (c *Client) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) <span class="cov8" title="1">{
         return c.Do(ctx, Request{Command: CommandSet, Key: key, Value: value, Overwrite: overwrite, Old: old})
 }</span>
 
-func (c *Client) Get(ctx context.Context, key string) (string, error) <span class="cov0" title="0">{
+func (c *Client) Get(ctx context.Context, key string) (string, error) <span class="cov8" title="1">{
         return c.Do(ctx, Request{Command: CommandGet, Key: key})
 }</span>
 
-func (c *Client) Delete(ctx context.Context, key string) (string, error) <span class="cov0" title="0">{
+func (c *Client) Delete(ctx context.Context, key string) (string, error) <span class="cov8" title="1">{
         return c.Do(ctx, Request{Command: CommandDelete, Key: key})
 }</span>
 
-func (c *Client) Exists(ctx context.Context, key string) (bool, error) <span class="cov0" title="0">{
+func (c *Client) Exists(ctx context.Context, key string) (bool, error) <span class="cov8" title="1">{
         resp, err := c.Do(ctx, Request{Command: CommandExists, Key: key})
-        if err != nil </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
                 return false, err
         }</span>
-        <span class="cov0" title="0">return resp == "1", nil</span>
+        <span class="cov8" title="1">return resp == "1", nil</span>
 }
 </pre>
 		
