@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-	// Define CLI flags
 	overwrite := flag.Bool("overwrite", false, "Allow overwriting existing values")
 	old := flag.Bool("old", false, "Return the previous value if available")
 	flag.Parse()

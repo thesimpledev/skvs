@@ -8,7 +8,6 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-// Public command constants
 const (
 	CommandSet    = "SET"
 	CommandGet    = "GET"
@@ -16,7 +15,6 @@ const (
 	CommandExists = "EXISTS"
 )
 
-// Request models a single operation against the server.
 type Request struct {
 	Command   string
 	Key       string
@@ -25,12 +23,10 @@ type Request struct {
 	Old       bool
 }
 
-// Client is the external-facing SKVS client.
 type Client struct {
 	*client.Client
 }
 
-// New creates a new client connected to the given addr.
 func New(addr string) (*Client, error) {
 	c, err := client.New(addr)
 	if err != nil {
@@ -39,7 +35,6 @@ func New(addr string) (*Client, error) {
 	return &Client{c}, nil
 }
 
-// Do executes a Request.
 func (c *Client) Do(ctx context.Context, req Request) (string, error) {
 	var cmd byte
 	switch req.Command {
@@ -69,8 +64,6 @@ func (c *Client) Do(ctx context.Context, req Request) (string, error) {
 	}
 	return string(resp), nil
 }
-
-// Convenience helpers ---------------------------------------------------------
 
 func (c *Client) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) {
 	return c.Do(ctx, Request{Command: CommandSet, Key: key, Value: value, Overwrite: overwrite, Old: old})

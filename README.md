@@ -26,8 +26,8 @@ The Simple Key Value Server is a tiny UDP key–value server for a personal proj
 
 ## Library Client
 
-The Go client library is provided as a thin wrapper around the internal protocol.  
-It requires that every operation is called with a `context.Context` that has a deadline set.  
+The Go client library is provided as a thin wrapper around the internal protocol.
+It requires that every operation is called with a `context.Context` that has a deadline set.
 If a deadline is not provided, the call will fail immediately.
 
 ### Example
@@ -49,13 +49,11 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
     defer cancel()
 
-    // Set with overwrite
     _, err = c.Set(ctx, "foo", "bar", true, false)
     if err != nil {
         panic(err)
     }
 
-    // Get
     val, err := c.Get(ctx, "foo")
     if err != nil {
         panic(err)
