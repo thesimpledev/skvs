@@ -4,9 +4,15 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/thesimpledev/skvs/internal/encryption"
 	"github.com/thesimpledev/skvs/internal/protocol"
+)
+
+const (
+	maxAttempts = 10
+	baseDelay   = 100 * time.Millisecond
 )
 
 type Client struct {
@@ -39,9 +45,8 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 	}
 
 	frame := make([]byte, protocol.FrameSize)
-
+	// Building the frame manually. While I could use the encoding/binary package I decided doing it by hand would be more clear.
 	frame[0] = command
-
 	frame[1] = byte(flags)
 	frame[2] = byte(flags >> 8)
 	frame[3] = byte(flags >> 16)
@@ -55,26 +60,43 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 		return nil, fmt.Errorf("encryption failed: %w", err)
 	}
 
-	_ = c.conn.SetWriteDeadline(deadline)
-	_ = c.conn.SetReadDeadline(deadline)
+	var lastError error
+	for attempt := range maxAttempts {
+		if attempt > 0 {
+			delay := baseDelay * (1 << (attempt - 1))
+			select {
+			case <-time.After(delay):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
 
-	_, err = c.conn.Write(encrypted)
-	if err != nil {
-		return nil, fmt.Errorf("send frame: %w", err)
+		_ = c.conn.SetWriteDeadline(deadline)
+		_ = c.conn.SetReadDeadline(deadline)
+
+		_, err = c.conn.Write(encrypted)
+		if err != nil {
+			lastError = fmt.Errorf("send frame: %w", err)
+			continue
+		}
+
+		buf := make([]byte, protocol.EncryptedFrameSize)
+
+		n, _, err := c.conn.ReadFromUDP(buf)
+		if err != nil {
+			lastError = fmt.Errorf("read response: %w", err)
+			continue
+		}
+
+		decrypted, err := encryption.Decrypt(buf[:n])
+		if err != nil {
+			lastError = fmt.Errorf("decryption failed: %w", err)
+			continue
+		}
+
+		return decrypted, nil
 	}
 
-	buf := make([]byte, protocol.EncryptedFrameSize)
-
-	n, _, err := c.conn.ReadFromUDP(buf)
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
-	}
-
-	decrypted, err := encryption.Decrypt(buf[:n])
-	if err != nil {
-		return nil, fmt.Errorf("decryption failed: %w", err)
-	}
-
-	return decrypted, nil
+	return nil, fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastError)
 
 }
