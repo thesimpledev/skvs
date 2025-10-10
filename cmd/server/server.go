@@ -53,7 +53,11 @@ func (app *application) serve() error {
 }
 
 func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAddr, data []byte) {
-	payload, err := encryption.Decrypt(data)
+	e, err := encryption.New(nil)
+	if err != nil {
+		app.log.Error("Unable to create Encryptor", "err", err)
+	}
+	payload, err := e.Decrypt(data)
 	if err != nil {
 		app.log.Error("Decrypt failed", "Err", err)
 		app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
@@ -67,7 +71,7 @@ func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAdd
 		return
 	}
 
-	encryptedResponse, err := encryption.Encrypt(response)
+	encryptedResponse, err := e.Encrypt(response)
 	if err != nil {
 		app.log.Error("Encryption failed", "Err", err)
 		app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)

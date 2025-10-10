@@ -1,3 +1,4 @@
+// Package encryption provides the encryption and decryption functions for the key-value store.
 package encryption
 
 import (
@@ -6,22 +7,27 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
-var key = []byte(os.Getenv("SKVS_ENCRYPTION_KEY"))
-
-func init() {
-	if len(key) != 32 {
-		log.Fatal("SKVS_ENCRYPTION_KEY must be exactly 32 bytes for AES-256-GCM")
-	}
-
+type Encryptor struct {
+	key []byte
 }
 
-func Encrypt(payload []byte) ([]byte, error) {
+func New(key []byte) (*Encryptor, error) {
+	if key == nil {
+		key = []byte(os.Getenv("SKVS_ENCRYPTION_KEY"))
+	}
 
-	block, err := aes.NewCipher(key)
+	if len(key) != 32 {
+		return nil, fmt.Errorf("Key must be exactly 32 bytes for AES-256-GCM")
+	}
+
+	return &Encryptor{key: key}, nil
+}
+
+func (e *Encryptor) Encrypt(payload []byte) ([]byte, error) {
+	block, err := aes.NewCipher(e.key)
 	if err != nil {
 		return nil, fmt.Errorf("encryption: new cipher: %v", err)
 	}
@@ -39,8 +45,8 @@ func Encrypt(payload []byte) ([]byte, error) {
 	return gcm.Seal(nonce, nonce, payload, nil), nil
 }
 
-func Decrypt(payload []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+func (e *Encryptor) Decrypt(payload []byte) ([]byte, error) {
+	block, err := aes.NewCipher(e.key)
 	if err != nil {
 		return nil, fmt.Errorf("decryption: new cipher: %v", err)
 	}

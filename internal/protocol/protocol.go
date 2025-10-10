@@ -1,3 +1,4 @@
+// Package protocol provides the protocol definitions for the key-value store.
 package protocol
 
 import "time"
