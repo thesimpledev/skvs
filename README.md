@@ -2,6 +2,8 @@
 
 The Simple Key Value Server is a tiny UDP key–value server for a personal project where I needed something lighter than Valkey or Redis.. It’s intentionally minimal, fast, and easy to reason about.
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/thesimpledev/skvs)](https://goreportcard.com/report/github.com/thesimpledev/skvs)
+
 ## Features
 
 - Transport: UDP (one datagram per request/response)
