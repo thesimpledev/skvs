@@ -1,0 +1,704 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>client_cli: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/thesimpledev/skvs/cmd/client_cli/main.go (0.0%)</option>
+				
+				<option value="file1">github.com/thesimpledev/skvs/cmd/client_lib/main.go (0.0%)</option>
+				
+				<option value="file2">github.com/thesimpledev/skvs/cmd/server/commands.go (0.0%)</option>
+				
+				<option value="file3">github.com/thesimpledev/skvs/cmd/server/main.go (0.0%)</option>
+				
+				<option value="file4">github.com/thesimpledev/skvs/cmd/server/server.go (0.0%)</option>
+				
+				<option value="file5">github.com/thesimpledev/skvs/cmd/server/system.go (0.0%)</option>
+				
+				<option value="file6">github.com/thesimpledev/skvs/internal/client/client.go (0.0%)</option>
+				
+				<option value="file7">github.com/thesimpledev/skvs/internal/encryption/encryption.go (78.6%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "context"
+        "flag"
+        "fmt"
+        "os"
+
+        "github.com/thesimpledev/skvs/internal/client"
+        "github.com/thesimpledev/skvs/internal/protocol"
+)
+
+func main() <span class="cov0" title="0">{
+        // Define CLI flags
+        overwrite := flag.Bool("overwrite", false, "Allow overwriting existing values")
+        old := flag.Bool("old", false, "Return the previous value if available")
+        flag.Parse()
+
+        args := flag.Args()
+        if len(args) &lt; 2 </span><span class="cov0" title="0">{
+                fmt.Println("Usage: cli &lt;set|get|delete|exists&gt; &lt;key&gt; [value] [--overwrite] [--old]")
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">commandStr := args[0]
+        key := args[1]
+        value := ""
+        if len(args) &gt; 2 </span><span class="cov0" title="0">{
+                value = args[2]
+        }</span>
+
+        <span class="cov0" title="0">c, err := client.New(fmt.Sprintf("localhost:%d", protocol.Port))
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println("Error creating client:", err)
+                os.Exit(1)
+        }</span>
+        <span class="cov0" title="0">defer c.Close()
+
+        var cmd byte
+        switch commandStr </span>{
+        case "set":<span class="cov0" title="0">
+                cmd = protocol.CMD_SET</span>
+        case "get":<span class="cov0" title="0">
+                cmd = protocol.CMD_GET</span>
+        case "delete":<span class="cov0" title="0">
+                cmd = protocol.CMD_DELETE</span>
+        case "exists":<span class="cov0" title="0">
+                cmd = protocol.CMD_EXISTS</span>
+        default:<span class="cov0" title="0">
+                fmt.Println("Unknown command:", commandStr)
+                os.Exit(1)</span>
+        }
+
+        <span class="cov0" title="0">var flags uint32
+        if *overwrite </span><span class="cov0" title="0">{
+                flags |= protocol.FLAG_OVERWRITE
+        }</span>
+        <span class="cov0" title="0">if *old </span><span class="cov0" title="0">{
+                flags |= protocol.FLAG_OLD
+        }</span>
+
+        <span class="cov0" title="0">ctx, cancel := context.WithTimeout(context.Background(), protocol.Timeout)
+        defer cancel()
+
+        resp, err := c.Send(ctx, cmd, flags, key, value)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println("Error:", err)
+                os.Exit(1)
+        }</span>
+
+        <span class="cov0" title="0">fmt.Println("Response:", resp)</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "context"
+        "fmt"
+
+        "github.com/thesimpledev/skvs/internal/client"
+        "github.com/thesimpledev/skvs/internal/protocol"
+)
+
+// Public command constants
+const (
+        CommandSet    = "SET"
+        CommandGet    = "GET"
+        CommandDelete = "DELETE"
+        CommandExists = "EXISTS"
+)
+
+// Request models a single operation against the server.
+type Request struct {
+        Command   string
+        Key       string
+        Value     string
+        Overwrite bool
+        Old       bool
+}
+
+// Client is the external-facing SKVS client.
+type Client struct {
+        *client.Client
+}
+
+// New creates a new client connected to the given addr.
+func New(addr string) (*Client, error) <span class="cov0" title="0">{
+        c, err := client.New(addr)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("create client: %w", err)
+        }</span>
+        <span class="cov0" title="0">return &amp;Client{c}, nil</span>
+}
+
+// Do executes a Request.
+func (c *Client) Do(ctx context.Context, req Request) (string, error) <span class="cov0" title="0">{
+        var cmd byte
+        switch req.Command </span>{
+        case CommandSet:<span class="cov0" title="0">
+                cmd = protocol.CMD_SET</span>
+        case CommandGet:<span class="cov0" title="0">
+                cmd = protocol.CMD_GET</span>
+        case CommandDelete:<span class="cov0" title="0">
+                cmd = protocol.CMD_DELETE</span>
+        case CommandExists:<span class="cov0" title="0">
+                cmd = protocol.CMD_EXISTS</span>
+        default:<span class="cov0" title="0">
+                return "", fmt.Errorf("unknown command: %s", req.Command)</span>
+        }
+
+        <span class="cov0" title="0">var flags uint32
+        if req.Overwrite </span><span class="cov0" title="0">{
+                flags |= protocol.FLAG_OVERWRITE
+        }</span>
+        <span class="cov0" title="0">if req.Old </span><span class="cov0" title="0">{
+                flags |= protocol.FLAG_OLD
+        }</span>
+
+        <span class="cov0" title="0">resp, err := c.Send(ctx, cmd, flags, req.Key, req.Value)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov0" title="0">return string(resp), nil</span>
+}
+
+// Convenience helpers ---------------------------------------------------------
+
+func (c *Client) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) <span class="cov0" title="0">{
+        return c.Do(ctx, Request{Command: CommandSet, Key: key, Value: value, Overwrite: overwrite, Old: old})
+}</span>
+
+func (c *Client) Get(ctx context.Context, key string) (string, error) <span class="cov0" title="0">{
+        return c.Do(ctx, Request{Command: CommandGet, Key: key})
+}</span>
+
+func (c *Client) Delete(ctx context.Context, key string) (string, error) <span class="cov0" title="0">{
+        return c.Do(ctx, Request{Command: CommandDelete, Key: key})
+}</span>
+
+func (c *Client) Exists(ctx context.Context, key string) (bool, error) <span class="cov0" title="0">{
+        resp, err := c.Do(ctx, Request{Command: CommandExists, Key: key})
+        if err != nil </span><span class="cov0" title="0">{
+                return false, err
+        }</span>
+        <span class="cov0" title="0">return resp == "1", nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package main
+
+func set(key string, value []byte, overwrite, old bool) ([]byte, error) <span class="cov0" title="0">{
+        var returnValue []byte
+        mu.Lock()
+        defer mu.Unlock()
+        if old </span><span class="cov0" title="0">{
+                returnValue = skvs[key]
+        }</span>
+
+        <span class="cov0" title="0">if oldValue, exists := skvs[key]; !exists || overwrite </span><span class="cov0" title="0">{
+                if !old </span><span class="cov0" title="0">{
+                        returnValue = value
+                }</span>
+
+                <span class="cov0" title="0">skvs[key] = value</span>
+        } else<span class="cov0" title="0"> {
+                returnValue = oldValue
+        }</span>
+
+        <span class="cov0" title="0">return returnValue, nil</span>
+}
+
+func get(key string) ([]byte, error) <span class="cov0" title="0">{
+        mu.RLock()
+        defer mu.RUnlock()
+        return skvs[key], nil
+}</span>
+
+func del(key string) ([]byte, error) <span class="cov0" title="0">{
+        mu.Lock()
+        defer mu.Unlock()
+        returnValue := skvs[key]
+        delete(skvs, key)
+        return returnValue, nil
+}</span>
+
+func exists(key string) ([]byte, error) <span class="cov0" title="0">{
+        mu.RLock()
+        defer mu.RUnlock()
+        if _, exists := skvs[key]; exists </span><span class="cov0" title="0">{
+                return []byte("1"), nil
+        }</span>
+
+        <span class="cov0" title="0">return []byte("0"), nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package main
+
+import (
+        "fmt"
+        "log/slog"
+        "os"
+        "strconv"
+
+        "github.com/thesimpledev/skvs/internal/protocol"
+)
+
+type config struct {
+        port int
+}
+
+type application struct {
+        cfg *config
+        log *slog.Logger
+}
+
+func main() <span class="cov0" title="0">{
+        logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+        port, err := strconv.Atoi(os.Getenv("PORT"))
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Info(fmt.Sprintf("invalid or missing PORT, defaulting to %d", protocol.Port))
+                port = protocol.Port
+        }</span>
+
+        <span class="cov0" title="0">config := &amp;config{
+                port: port,
+        }
+
+        app := &amp;application{
+                cfg: config,
+                log: logger,
+        }
+
+        app.log.Info("Launching", "port", port)
+
+        err = app.serve()
+        if err != nil </span><span class="cov0" title="0">{
+                app.log.Error("server error", "err", err)
+                os.Exit(1)
+        }</span>
+
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package main
+
+import (
+        "fmt"
+        "net"
+        "sync"
+
+        "github.com/thesimpledev/skvs/internal/encryption"
+        "github.com/thesimpledev/skvs/internal/protocol"
+)
+
+func (app *application) serve() error <span class="cov0" title="0">{
+        addr := fmt.Sprintf(":%d", app.cfg.port)
+
+        udpAddr, err := net.ResolveUDPAddr("udp", addr)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to resolve UDP addr %s: %w", addr, err)
+        }</span>
+
+        <span class="cov0" title="0">server, err := net.ListenUDP("udp", udpAddr)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to listen on %s: %w", addr, err)
+        }</span>
+        <span class="cov0" title="0">defer server.Close()
+
+        app.log.Info("listening", "address", addr)
+
+        var bufPool = sync.Pool{
+                New: func() any </span><span class="cov0" title="0">{
+                        buf := make([]byte, protocol.EncryptedFrameSize)
+                        return &amp;buf
+                }</span>,
+        }
+
+        <span class="cov0" title="0">for </span><span class="cov0" title="0">{
+                bufPtr := bufPool.Get().(*[]byte)
+                buf := *bufPtr
+                n, clientAddr, err := server.ReadFromUDP(buf)
+                if err != nil </span><span class="cov0" title="0">{
+                        app.log.Error("failed to read UDP packet", "err", err)
+                        bufPool.Put(bufPtr)
+                        continue</span>
+                }
+
+                <span class="cov0" title="0">data := make([]byte, n)
+                copy(data, buf[:n])
+                bufPool.Put(bufPtr)
+                go func() </span><span class="cov0" title="0">{
+
+                        app.handlePacket(server, clientAddr, data)
+                }</span>()
+        }
+}
+
+func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAddr, data []byte) <span class="cov0" title="0">{
+        e, err := encryption.New(nil)
+        if err != nil </span><span class="cov0" title="0">{
+                app.log.Error("Unable to create Encryptor", "err", err)
+        }</span>
+        <span class="cov0" title="0">payload, err := e.Decrypt(data)
+        if err != nil </span><span class="cov0" title="0">{
+                app.log.Error("Decrypt failed", "Err", err)
+                app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
+                return
+        }</span>
+
+        <span class="cov0" title="0">response, err := processMessage(payload)
+        if err != nil </span><span class="cov0" title="0">{
+                app.log.Error("failed to process message", "err", err)
+                app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
+                return
+        }</span>
+
+        <span class="cov0" title="0">encryptedResponse, err := e.Encrypt(response)
+        if err != nil </span><span class="cov0" title="0">{
+                app.log.Error("Encryption failed", "Err", err)
+                app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
+                return
+        }</span>
+
+        <span class="cov0" title="0">app.sendMessage(encryptedResponse, server, clientAddr)</span>
+}
+
+func (app *application) sendMessage(message []byte, server *net.UDPConn, clientAddr *net.UDPAddr) <span class="cov0" title="0">{
+        _, err := server.WriteToUDP(message, clientAddr)
+        if err != nil </span><span class="cov0" title="0">{
+                app.log.Error("failed to write response", "err", err)
+                return
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package main
+
+import (
+        "bytes"
+        "fmt"
+
+        "github.com/thesimpledev/skvs/internal/protocol"
+)
+
+func processMessage(frame []byte) ([]byte, error) <span class="cov0" title="0">{
+        if len(frame) != protocol.FrameSize </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("invalid frame size %d", len(frame))
+        }</span>
+
+        <span class="cov0" title="0">cmd := frame[0]
+
+        flags := uint32(frame[1]) |
+                uint32(frame[2])&lt;&lt;8 |
+                uint32(frame[3])&lt;&lt;16 |
+                uint32(frame[4])&lt;&lt;24
+
+        start := protocol.CommandSize + protocol.FlagSize
+        keyBytes := frame[start : start+protocol.KeySize]
+        valBytes := frame[start+protocol.KeySize : start+protocol.KeySize+protocol.ValueSize]
+
+        overwrite := flags&amp;protocol.FLAG_OVERWRITE != 0
+        old := flags&amp;protocol.FLAG_OLD != 0
+
+        key := string(bytes.TrimRight(keyBytes, "\x00"))
+        value := bytes.TrimRight(valBytes, "\x00")
+
+        switch cmd </span>{
+        case protocol.CMD_SET:<span class="cov0" title="0">
+                return set(key, value, overwrite, old)</span>
+        case protocol.CMD_GET:<span class="cov0" title="0">
+                return get(key)</span>
+        case protocol.CMD_DELETE:<span class="cov0" title="0">
+                return del(key)</span>
+        case protocol.CMD_EXISTS:<span class="cov0" title="0">
+                return exists(key)</span>
+        default:<span class="cov0" title="0">
+                return nil, fmt.Errorf("unknown command: %d", cmd)</span>
+        }
+
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package client
+
+import (
+        "context"
+        "fmt"
+        "net"
+        "time"
+
+        "github.com/thesimpledev/skvs/internal/encryption"
+        "github.com/thesimpledev/skvs/internal/protocol"
+)
+
+const (
+        maxAttempts = 10
+        baseDelay   = 100 * time.Millisecond
+)
+
+type Client struct {
+        addr *net.UDPAddr
+        conn *net.UDPConn
+}
+
+func New(serverAddr string) (*Client, error) <span class="cov0" title="0">{
+        udpAddr, err := net.ResolveUDPAddr("udp", serverAddr)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("resolve addr: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">conn, err := net.DialUDP("udp", nil, udpAddr)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("dial udp: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return &amp;Client{addr: udpAddr, conn: conn}, nil</span>
+}
+
+func (c *Client) Close() <span class="cov0" title="0">{
+        c.conn.Close()
+}</span>
+
+func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, value string) ([]byte, error) <span class="cov0" title="0">{
+        deadline, ok := ctx.Deadline()
+        if !ok </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("Send requires a context with deadline")
+        }</span>
+
+        <span class="cov0" title="0">frame := make([]byte, protocol.FrameSize)
+        // Building the frame manually. While I could use the encoding/binary package I decided doing it by hand would be more clear.
+        frame[0] = command
+        frame[1] = byte(flags)
+        frame[2] = byte(flags &gt;&gt; 8)
+        frame[3] = byte(flags &gt;&gt; 16)
+        frame[4] = byte(flags &gt;&gt; 24)
+
+        copy(frame[5:5+protocol.KeySize], []byte(key))
+        copy(frame[5+protocol.KeySize:], []byte(value))
+
+        e, err := encryption.New(nil)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("Failed to create Encryptor: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">encrypted, err := e.Encrypt(frame)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("encryption failed: %w", err)
+        }</span>
+        <span class="cov0" title="0">if len(encrypted) != protocol.EncryptedFrameSize </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("encrypted frame size mismatch: got %d, want %d", len(encrypted), protocol.EncryptedFrameSize)
+        }</span>
+
+        <span class="cov0" title="0">var lastError error
+        for attempt := range maxAttempts </span><span class="cov0" title="0">{
+                if attempt &gt; 0 </span><span class="cov0" title="0">{
+                        delay := min(baseDelay*(1&lt;&lt;(attempt-1)), time.Second)
+                        select </span>{
+                        case &lt;-time.After(delay):<span class="cov0" title="0"></span>
+                        case &lt;-ctx.Done():<span class="cov0" title="0">
+                                return nil, ctx.Err()</span>
+                        }
+                }
+
+                <span class="cov0" title="0">_ = c.conn.SetWriteDeadline(deadline)
+                _ = c.conn.SetReadDeadline(deadline)
+
+                _, err = c.conn.Write(encrypted)
+                if err != nil </span><span class="cov0" title="0">{
+                        lastError = fmt.Errorf("send frame: %w", err)
+                        continue</span>
+                }
+
+                <span class="cov0" title="0">buf := make([]byte, protocol.EncryptedFrameSize)
+
+                n, err := c.conn.Read(buf)
+                if err != nil </span><span class="cov0" title="0">{
+                        lastError = fmt.Errorf("read response: %w", err)
+                        continue</span>
+                }
+
+                <span class="cov0" title="0">decrypted, err := e.Decrypt(buf[:n])
+                if err != nil </span><span class="cov0" title="0">{
+                        lastError = fmt.Errorf("decryption failed: %w", err)
+                        continue</span>
+                }
+
+                <span class="cov0" title="0">return decrypted, nil</span>
+        }
+
+        <span class="cov0" title="0">return nil, fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastError)</span>
+
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">// Package encryption provides the encryption and decryption functions for the key-value store.
+package encryption
+
+import (
+        "crypto/aes"
+        "crypto/cipher"
+        "crypto/rand"
+        "fmt"
+        "io"
+        "os"
+)
+
+type Encryptor struct {
+        key []byte
+}
+
+func New(key []byte) (*Encryptor, error) <span class="cov8" title="1">{
+        if key == nil </span><span class="cov0" title="0">{
+                key = []byte(os.Getenv("SKVS_ENCRYPTION_KEY"))
+        }</span>
+
+        <span class="cov8" title="1">if len(key) != 32 </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Key must be exactly 32 bytes for AES-256-GCM")
+        }</span>
+
+        <span class="cov8" title="1">return &amp;Encryptor{key: key}, nil</span>
+}
+
+func (e *Encryptor) Encrypt(payload []byte) ([]byte, error) <span class="cov8" title="1">{
+        block, err := aes.NewCipher(e.key)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("encryption: new cipher: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">gcm, err := cipher.NewGCM(block)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("encryption: new gcm: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">nonce := make([]byte, gcm.NonceSize())
+        if _, err := io.ReadFull(rand.Reader, nonce); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("encryption: nonce: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">return gcm.Seal(nonce, nonce, payload, nil), nil</span>
+}
+
+func (e *Encryptor) Decrypt(payload []byte) ([]byte, error) <span class="cov8" title="1">{
+        block, err := aes.NewCipher(e.key)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("decryption: new cipher: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">gcm, err := cipher.NewGCM(block)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("decryption: new gcm: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">if len(payload) &lt; gcm.NonceSize() </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("decryption: ciphertext too short")
+        }</span>
+
+        <span class="cov8" title="1">nonce, ciphertext := payload[:gcm.NonceSize()], payload[gcm.NonceSize():]
+        plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("decryption: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">return plaintext, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

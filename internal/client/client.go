@@ -55,7 +55,12 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 	copy(frame[5:5+protocol.KeySize], []byte(key))
 	copy(frame[5+protocol.KeySize:], []byte(value))
 
-	encrypted, err := encryption.Encrypt(frame)
+	e, err := encryption.New(nil)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create Encryptor: %w", err)
+	}
+
+	encrypted, err := e.Encrypt(frame)
 	if err != nil {
 		return nil, fmt.Errorf("encryption failed: %w", err)
 	}
@@ -91,7 +96,7 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 			continue
 		}
 
-		decrypted, err := encryption.Decrypt(buf[:n])
+		decrypted, err := e.Decrypt(buf[:n])
 		if err != nil {
 			lastError = fmt.Errorf("decryption failed: %w", err)
 			continue
