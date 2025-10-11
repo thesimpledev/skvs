@@ -28,7 +28,7 @@ type Client struct {
 }
 
 func New(addr string) (*Client, error) {
-	c, err := client.New(addr)
+	c, err := client.New(addr, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create client: %w", err)
 	}

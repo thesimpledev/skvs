@@ -17,11 +17,12 @@ const (
 )
 
 type Client struct {
-	addr *net.UDPAddr
-	conn *net.UDPConn
+	addr      *net.UDPAddr
+	conn      *net.UDPConn
+	encryptor *encryption.Encryptor
 }
 
-func New(serverAddr string) (*Client, error) {
+func New(serverAddr string, encryptionKey []byte) (*Client, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", serverAddr)
 	if err != nil {
 		return nil, fmt.Errorf("resolve addr: %w", err)
@@ -32,7 +33,13 @@ func New(serverAddr string) (*Client, error) {
 		return nil, fmt.Errorf("dial udp: %w", err)
 	}
 
-	return &Client{addr: udpAddr, conn: conn}, nil
+	e, err := encryption.New(encryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create encryptor: %w", err)
+	}
+
+	return &Client{addr: udpAddr, conn: conn, encryptor: e}, nil
+
 }
 
 func (c *Client) Close() {
@@ -56,12 +63,7 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 	copy(frame[5:5+protocol.KeySize], []byte(key))
 	copy(frame[5+protocol.KeySize:], []byte(value))
 
-	e, err := encryption.New(nil)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create Encryptor: %w", err)
-	}
-
-	encrypted, err := e.Encrypt(frame)
+	encrypted, err := c.encryptor.Encrypt(frame)
 	if err != nil {
 		return nil, fmt.Errorf("encryption failed: %w", err)
 	}
@@ -97,7 +99,7 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 			continue
 		}
 
-		decrypted, err := e.Decrypt(buf[:n])
+		decrypted, err := c.encryptor.Decrypt(buf[:n])
 		if err != nil {
 			lastError = fmt.Errorf("decryption failed: %w", err)
 			continue
