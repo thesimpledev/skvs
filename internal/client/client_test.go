@@ -12,8 +12,10 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	validKey := []byte("12345678901234567890123456789012")
+
 	t.Run("valid address", func(t *testing.T) {
-		c, err := New("localhost:4040")
+		c, err := New("localhost:4040", validKey)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -24,17 +26,24 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("invalid address format", func(t *testing.T) {
-		_, err := New("invalid::address")
+		_, err := New("invalid::address", validKey)
 		if err == nil {
 			t.Fatal("expected error for invalid address, got nil")
 		}
 	})
 
+	t.Run("invalid encryption key", func(t *testing.T) {
+		_, err := New("localhost:4040", []byte("tooshort"))
+		if err == nil {
+			t.Fatal("expected error for invalid encryption key, got nil")
+		}
+	})
 }
-func TestClose(t *testing.T) {
-	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
 
-	c, err := New("localhost:4040")
+func TestClose(t *testing.T) {
+	validKey := []byte("12345678901234567890123456789012")
+
+	c, err := New("localhost:4040", validKey)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
@@ -51,13 +60,13 @@ func TestClose(t *testing.T) {
 }
 
 func TestSendRequiresDeadline(t *testing.T) {
-	c, err := New("localhost:4040")
+	validKey := []byte("12345678901234567890123456789012")
+
+	c, err := New("localhost:4040", validKey)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
 	defer c.Close()
-
-	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
 
 	ctx := context.Background()
 
@@ -128,25 +137,25 @@ func TestSendFrameBuilding(t *testing.T) {
 }
 
 func TestSendEncryptionError(t *testing.T) {
-	c, err := New("localhost:4040")
+	validKey := []byte("12345678901234567890123456789012")
+
+	c, err := New("localhost:4040", validKey)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
 	defer c.Close()
-
-	t.Setenv("SKVS_ENCRYPTION_KEY", "tooshort")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	_, err = c.Send(ctx, protocol.CMD_GET, 0, "test", "")
 	if err == nil {
-		t.Fatal("expected error for invalid encryption key, got nil")
+		t.Fatal("expected error (no server), got nil")
 	}
 }
 
 func TestSendWithMockServer(t *testing.T) {
-	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
+	validKey := []byte("12345678901234567890123456789012")
 
 	serverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0") // :0 = random port
 	if err != nil {
@@ -161,7 +170,7 @@ func TestSendWithMockServer(t *testing.T) {
 
 	actualPort := serverConn.LocalAddr().(*net.UDPAddr).Port
 
-	enc, err := encryption.New(nil)
+	enc, err := encryption.New(validKey)
 	if err != nil {
 		t.Fatalf("failed to create encryptor: %v", err)
 	}
@@ -191,7 +200,7 @@ func TestSendWithMockServer(t *testing.T) {
 		serverConn.WriteToUDP(encrypted, clientAddr)
 	}()
 
-	client, err := New(fmt.Sprintf("127.0.0.1:%d", actualPort))
+	client, err := New(fmt.Sprintf("127.0.0.1:%d", actualPort), validKey)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
@@ -213,8 +222,9 @@ func TestSendWithMockServer(t *testing.T) {
 }
 
 func TestSendContextCancellation(t *testing.T) {
-	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
-	client, err := New("127.0.0.1:9999")
+	validKey := []byte("12345678901234567890123456789012")
+
+	client, err := New("127.0.0.1:9999", validKey)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
@@ -228,9 +238,9 @@ func TestSendContextCancellation(t *testing.T) {
 }
 
 func TestSendRetry(t *testing.T) {
-	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
+	validKey := []byte("12345678901234567890123456789012")
 
-	client, err := New("127.0.0.1:9998")
+	client, err := New("127.0.0.1:9998", validKey)
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}

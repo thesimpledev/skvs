@@ -5,7 +5,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/thesimpledev/skvs/internal/encryption"
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
@@ -53,11 +52,7 @@ func (app *application) serve() error {
 }
 
 func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAddr, data []byte) {
-	e, err := encryption.New(nil)
-	if err != nil {
-		app.log.Error("Unable to create Encryptor", "err", err)
-	}
-	payload, err := e.Decrypt(data)
+	payload, err := app.encryptor.Decrypt(data)
 	if err != nil {
 		app.log.Error("Decrypt failed", "Err", err)
 		app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)
@@ -71,7 +66,7 @@ func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAdd
 		return
 	}
 
-	encryptedResponse, err := e.Encrypt(response)
+	encryptedResponse, err := app.encryptor.Encrypt(response)
 	if err != nil {
 		app.log.Error("Encryption failed", "Err", err)
 		app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)

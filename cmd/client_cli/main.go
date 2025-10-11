@@ -28,7 +28,7 @@ func main() {
 		value = args[2]
 	}
 
-	c, err := client.New(fmt.Sprintf("localhost:%d", protocol.Port))
+	c, err := client.New(fmt.Sprintf("localhost:%d", protocol.Port), nil)
 	if err != nil {
 		fmt.Println("Error creating client:", err)
 		os.Exit(1)

@@ -21,9 +21,16 @@ func TestServerIntegration(t *testing.T) {
 	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	enc, err := encryption.New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create encryptor: %v", err)
+	}
+
 	app := &application{
-		cfg: &config{port: 0},
-		log: logger,
+		cfg:       &config{port: 0},
+		log:       logger,
+		encryptor: enc,
 	}
 
 	serverReady := make(chan int)
@@ -84,7 +91,8 @@ func TestServerIntegration(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	c, err := client.New(fmt.Sprintf("localhost:%d", port))
+	validKey := []byte("12345678901234567890123456789012")
+	c, err := client.New(fmt.Sprintf("localhost:%d", port), validKey)
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -216,9 +224,16 @@ func TestHandlePacketDecryptFailure(t *testing.T) {
 	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	enc, err := encryption.New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create encryptor: %v", err)
+	}
+
 	app := &application{
-		cfg: &config{port: 0},
-		log: logger,
+		cfg:       &config{port: 0},
+		log:       logger,
+		encryptor: enc,
 	}
 
 	// Create a UDP server to receive the error response
@@ -266,15 +281,16 @@ func TestHandlePacketInvalidMessage(t *testing.T) {
 	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	app := &application{
-		cfg: &config{port: 0},
-		log: logger,
-	}
 
-	// Create encryption
 	enc, err := encryption.New(nil)
 	if err != nil {
 		t.Fatalf("Failed to create encryptor: %v", err)
+	}
+
+	app := &application{
+		cfg:       &config{port: 0},
+		log:       logger,
+		encryptor: enc,
 	}
 
 	// Create a UDP server to receive the error response
@@ -326,9 +342,16 @@ func TestSendMessage(t *testing.T) {
 	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	enc, err := encryption.New(nil)
+	if err != nil {
+		t.Fatalf("Failed to create encryptor: %v", err)
+	}
+
 	app := &application{
-		cfg: &config{port: 0},
-		log: logger,
+		cfg:       &config{port: 0},
+		log:       logger,
+		encryptor: enc,
 	}
 
 	// Create a UDP server to receive the message

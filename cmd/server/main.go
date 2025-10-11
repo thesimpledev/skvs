@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/thesimpledev/skvs/internal/encryption"
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
@@ -14,8 +15,9 @@ type config struct {
 }
 
 type application struct {
-	cfg *config
-	log *slog.Logger
+	cfg       *config
+	log       *slog.Logger
+	encryptor *encryption.Encryptor
 }
 
 func main() {
@@ -31,9 +33,16 @@ func main() {
 		port: port,
 	}
 
+	e, err := encryption.New(nil)
+	if err != nil {
+		logger.Error("Unable to create Encryptor: ", "err", err)
+		os.Exit(1)
+	}
+
 	app := &application{
-		cfg: config,
-		log: logger,
+		cfg:       config,
+		log:       logger,
+		encryptor: e,
 	}
 
 	app.log.Info("Launching", "port", port)
