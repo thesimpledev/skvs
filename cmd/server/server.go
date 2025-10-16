@@ -24,7 +24,7 @@ func (app *application) serve() error {
 
 	app.log.Info("listening", "address", addr)
 
-	var bufPool = sync.Pool{
+	bufPool := sync.Pool{
 		New: func() any {
 			buf := make([]byte, protocol.EncryptedFrameSize)
 			return &buf
