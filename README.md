@@ -1,6 +1,6 @@
-# Simple Key Value Server
+# Simple Key Value Store
 
-The Simple Key Value Server is a tiny UDP key–value server for a personal project where I needed something lighter than Valkey or Redis.. It’s intentionally minimal, fast, and easy to reason about.
+The Simple Key Value Store is a tiny UDP key–value server for a personal project where I needed something lighter than Valkey or Redis.. It’s intentionally minimal, fast, and easy to reason about.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/thesimpledev/skvs)](https://goreportcard.com/report/github.com/thesimpledev/skvs)
 [![License](https://img.shields.io/github/license/thesimpledev/skvs)](https://github.com/thesimpledev/skvs/blob/master/LICENSE)
