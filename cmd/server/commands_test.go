@@ -184,10 +184,10 @@ func TestConcurrency(t *testing.T) {
 		go func(n int) {
 			key := "key"
 			value := []byte("value")
-			set(key, value, true, false)
-			get(key)
-			del(key)
-			exists(key)
+			_, _ = set(key, value, true, false)
+			_, _ = get(key)
+			_, _ = del(key)
+			_, _ = exists(key)
 			done <- true
 		}(i)
 	}

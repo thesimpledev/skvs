@@ -49,7 +49,9 @@ func TestServerIntegration(t *testing.T) {
 			serverErr <- err
 			return
 		}
-		defer server.Close()
+		defer func() {
+			_ = server.Close()
+		}()
 
 		actualPort := server.LocalAddr().(*net.UDPAddr).Port
 		app.cfg.port = actualPort
@@ -241,7 +243,9 @@ func TestHandlePacketDecryptFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create response listener: %v", err)
 	}
-	defer responseConn.Close()
+	defer func() {
+		_ = responseConn.Close()
+	}()
 
 	responseAddr := responseConn.LocalAddr().(*net.UDPAddr)
 
@@ -250,7 +254,9 @@ func TestHandlePacketDecryptFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create server conn: %v", err)
 	}
-	defer serverConn.Close()
+	defer func() {
+		_ = serverConn.Close()
+	}()
 
 	// Send invalid encrypted data
 	invalidData := []byte("this is not properly encrypted data")
@@ -262,7 +268,10 @@ func TestHandlePacketDecryptFailure(t *testing.T) {
 	}()
 
 	// Wait for response
-	responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	err = responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	if err != nil {
+		t.Fatalf("Failed to set read deadline: %v", err)
+	}
 	buf := make([]byte, 1024)
 	n, _, err := responseConn.ReadFromUDP(buf)
 	if err != nil {
@@ -298,7 +307,9 @@ func TestHandlePacketInvalidMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create response listener: %v", err)
 	}
-	defer responseConn.Close()
+	defer func() {
+		_ = responseConn.Close()
+	}()
 
 	responseAddr := responseConn.LocalAddr().(*net.UDPAddr)
 
@@ -307,7 +318,9 @@ func TestHandlePacketInvalidMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create server conn: %v", err)
 	}
-	defer serverConn.Close()
+	defer func() {
+		_ = serverConn.Close()
+	}()
 
 	// Send properly encrypted but invalid protocol message (too short)
 	invalidPayload := []byte{0xFF} // Invalid command, too short
@@ -323,7 +336,10 @@ func TestHandlePacketInvalidMessage(t *testing.T) {
 	}()
 
 	// Wait for response
-	responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	err = responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	if err != nil {
+		t.Fatalf("Failed to set read deadline: %v", err)
+	}
 	buf := make([]byte, 1024)
 	n, _, err := responseConn.ReadFromUDP(buf)
 	if err != nil {
@@ -359,7 +375,9 @@ func TestSendMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create response listener: %v", err)
 	}
-	defer responseConn.Close()
+	defer func() {
+		_ = responseConn.Close()
+	}()
 
 	responseAddr := responseConn.LocalAddr().(*net.UDPAddr)
 
@@ -368,13 +386,18 @@ func TestSendMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create server conn: %v", err)
 	}
-	defer serverConn.Close()
+	defer func() {
+		_ = serverConn.Close()
+	}()
 
 	testMessage := []byte("test message")
 	app.sendMessage(testMessage, serverConn, responseAddr)
 
 	// Wait for message
-	responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	err = responseConn.SetReadDeadline(time.Now().Add(1 * time.Second))
+	if err != nil {
+		t.Fatalf("Failed to set read deadline: %v", err)
+	}
 	buf := make([]byte, 1024)
 	n, _, err := responseConn.ReadFromUDP(buf)
 	if err != nil {

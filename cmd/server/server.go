@@ -20,7 +20,9 @@ func (app *application) serve() error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
-	defer server.Close()
+	defer func() {
+		_ = server.Close()
+	}()
 
 	app.log.Info("listening", "address", addr)
 
