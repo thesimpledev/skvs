@@ -39,66 +39,6 @@ func (m *mockServerInfo) Close() {
 	close(m.done)
 }
 
-func startMockServer(t *testing.T) *mockServerInfo {
-	t.Helper()
-
-	// Import what we need
-	enc, err := encryption.New(nil)
-	if err != nil {
-		t.Fatalf("failed to create encryptor: %v", err)
-	}
-
-	serverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("failed to resolve addr: %v", err)
-	}
-
-	serverConn, err := net.ListenUDP("udp", serverAddr)
-	if err != nil {
-		t.Fatalf("failed to create server: %v", err)
-	}
-
-	actualPort := serverConn.LocalAddr().(*net.UDPAddr).Port
-
-	done := make(chan bool)
-
-	go func() {
-		defer serverConn.Close()
-		for {
-			select {
-			case <-done:
-				return
-			default:
-				buf := make([]byte, protocol.EncryptedFrameSize)
-				serverConn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
-				n, clientAddr, err := serverConn.ReadFromUDP(buf)
-				if err != nil {
-					continue
-				}
-
-				_, err = enc.Decrypt(buf[:n])
-				if err != nil {
-					continue
-				}
-
-				// Send back a simple response
-				response := []byte("OK")
-				encrypted, err := enc.Encrypt(response)
-				if err != nil {
-					continue
-				}
-
-				serverConn.WriteToUDP(encrypted, clientAddr)
-			}
-		}
-	}()
-
-	return &mockServerInfo{
-		addr: fmt.Sprintf("127.0.0.1:%d", actualPort),
-		done: done,
-	}
-}
-
 func TestDoWithMockServer(t *testing.T) {
 	t.Setenv("SKVS_ENCRYPTION_KEY", "12345678901234567890123456789012")
 
@@ -260,14 +200,19 @@ func startVerifyingMockServer(t *testing.T) *verifyingMockServer {
 	}
 
 	go func() {
-		defer serverConn.Close()
+		defer func() {
+			_ = serverConn.Close()
+		}()
 		for {
 			select {
 			case <-mock.done:
 				return
 			default:
 				buf := make([]byte, protocol.EncryptedFrameSize)
-				serverConn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+				err := serverConn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+				if err != nil {
+					continue
+				}
 				n, clientAddr, err := serverConn.ReadFromUDP(buf)
 				if err != nil {
 					continue
@@ -288,8 +233,14 @@ func startVerifyingMockServer(t *testing.T) *verifyingMockServer {
 				}
 
 				response := []byte("OK")
-				encrypted, _ := enc.Encrypt(response)
-				serverConn.WriteToUDP(encrypted, clientAddr)
+				encrypted, err := enc.Encrypt(response)
+				if err != nil {
+					continue
+				}
+				_, err = serverConn.WriteToUDP(encrypted, clientAddr)
+				if err != nil {
+					continue
+				}
 			}
 		}
 	}()
@@ -308,14 +259,19 @@ func startMockServerWithResponse(t *testing.T, response []byte) *mockServerInfo 
 	done := make(chan bool)
 
 	go func() {
-		defer serverConn.Close()
+		defer func() {
+			_ = serverConn.Close()
+		}()
 		for {
 			select {
 			case <-done:
 				return
 			default:
 				buf := make([]byte, protocol.EncryptedFrameSize)
-				serverConn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+				err := serverConn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+				if err != nil {
+					continue
+				}
 				n, clientAddr, err := serverConn.ReadFromUDP(buf)
 				if err != nil {
 					continue
@@ -326,8 +282,14 @@ func startMockServerWithResponse(t *testing.T, response []byte) *mockServerInfo 
 					continue
 				}
 
-				encrypted, _ := enc.Encrypt(response)
-				serverConn.WriteToUDP(encrypted, clientAddr)
+				encrypted, err := enc.Encrypt(response)
+				if err != nil {
+					continue
+				}
+				_, err = serverConn.WriteToUDP(encrypted, clientAddr)
+				if err != nil {
+					continue
+				}
 			}
 		}
 	}()

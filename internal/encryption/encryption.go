@@ -20,7 +20,7 @@ func New(key []byte) (*Encryptor, error) {
 	}
 
 	if len(key) != 32 {
-		return nil, fmt.Errorf("Key must be exactly 32 bytes for AES-256-GCM")
+		return nil, fmt.Errorf("key must be exactly 32 bytes for AES-256-GCM")
 	}
 
 	return &Encryptor{key: key}, nil

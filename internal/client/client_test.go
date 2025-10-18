@@ -166,7 +166,9 @@ func TestSendWithMockServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	defer serverConn.Close()
+	defer func() {
+		_ = serverConn.Close()
+	}()
 
 	actualPort := serverConn.LocalAddr().(*net.UDPAddr).Port
 
@@ -197,7 +199,7 @@ func TestSendWithMockServer(t *testing.T) {
 			return
 		}
 
-		serverConn.WriteToUDP(encrypted, clientAddr)
+		_, _ = serverConn.WriteToUDP(encrypted, clientAddr)
 	}()
 
 	client, err := New(fmt.Sprintf("127.0.0.1:%d", actualPort), validKey)

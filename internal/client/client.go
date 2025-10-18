@@ -43,7 +43,7 @@ func New(serverAddr string, encryptionKey []byte) (*Client, error) {
 }
 
 func (c *Client) Close() {
-	c.conn.Close()
+	_ = c.conn.Close()
 }
 
 func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, value string) ([]byte, error) {
