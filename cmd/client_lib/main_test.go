@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -67,11 +68,15 @@ func TestDoWithMockServer(t *testing.T) {
 			t.Fatalf("Do failed: %v", err)
 		}
 		// Verify mock received CMD_SET with FLAG_OVERWRITE
-		if mockServer.lastCmd != protocol.CMD_SET {
-			t.Errorf("expected CMD_SET (%d), got %d", protocol.CMD_SET, mockServer.lastCmd)
+		mockServer.mu.Lock()
+		lastCmd := mockServer.lastCmd
+		lastFlags := mockServer.lastFlags
+		mockServer.mu.Unlock()
+		if lastCmd != protocol.CMD_SET {
+			t.Errorf("expected CMD_SET (%d), got %d", protocol.CMD_SET, lastCmd)
 		}
-		if mockServer.lastFlags != protocol.FLAG_OVERWRITE {
-			t.Errorf("expected FLAG_OVERWRITE (%d), got %d", protocol.FLAG_OVERWRITE, mockServer.lastFlags)
+		if lastFlags != protocol.FLAG_OVERWRITE {
+			t.Errorf("expected FLAG_OVERWRITE (%d), got %d", protocol.FLAG_OVERWRITE, lastFlags)
 		}
 	})
 
@@ -80,8 +85,11 @@ func TestDoWithMockServer(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Do failed: %v", err)
 		}
-		if mockServer.lastCmd != protocol.CMD_GET {
-			t.Errorf("expected CMD_GET (%d), got %d", protocol.CMD_GET, mockServer.lastCmd)
+		mockServer.mu.Lock()
+		lastCmd := mockServer.lastCmd
+		mockServer.mu.Unlock()
+		if lastCmd != protocol.CMD_GET {
+			t.Errorf("expected CMD_GET (%d), got %d", protocol.CMD_GET, lastCmd)
 		}
 	})
 
@@ -90,8 +98,11 @@ func TestDoWithMockServer(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Do failed: %v", err)
 		}
-		if mockServer.lastCmd != protocol.CMD_DELETE {
-			t.Errorf("expected CMD_DELETE (%d), got %d", protocol.CMD_DELETE, mockServer.lastCmd)
+		mockServer.mu.Lock()
+		lastCmd := mockServer.lastCmd
+		mockServer.mu.Unlock()
+		if lastCmd != protocol.CMD_DELETE {
+			t.Errorf("expected CMD_DELETE (%d), got %d", protocol.CMD_DELETE, lastCmd)
 		}
 	})
 
@@ -100,8 +111,11 @@ func TestDoWithMockServer(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Do failed: %v", err)
 		}
-		if mockServer.lastCmd != protocol.CMD_EXISTS {
-			t.Errorf("expected CMD_EXISTS (%d), got %d", protocol.CMD_EXISTS, mockServer.lastCmd)
+		mockServer.mu.Lock()
+		lastCmd := mockServer.lastCmd
+		mockServer.mu.Unlock()
+		if lastCmd != protocol.CMD_EXISTS {
+			t.Errorf("expected CMD_EXISTS (%d), got %d", protocol.CMD_EXISTS, lastCmd)
 		}
 	})
 
@@ -117,8 +131,11 @@ func TestDoWithMockServer(t *testing.T) {
 			t.Fatalf("Do failed: %v", err)
 		}
 		expectedFlags := protocol.FLAG_OVERWRITE | protocol.FLAG_OLD
-		if mockServer.lastFlags != expectedFlags {
-			t.Errorf("expected flags %d, got %d", expectedFlags, mockServer.lastFlags)
+		mockServer.mu.Lock()
+		lastFlags := mockServer.lastFlags
+		mockServer.mu.Unlock()
+		if lastFlags != expectedFlags {
+			t.Errorf("expected flags %d, got %d", expectedFlags, lastFlags)
 		}
 	})
 
@@ -176,6 +193,7 @@ func TestExistsMethod(t *testing.T) {
 type verifyingMockServer struct {
 	addr      string
 	done      chan bool
+	mu        sync.Mutex
 	lastCmd   byte
 	lastFlags uint32
 	enc       *encryption.Encryptor
@@ -225,11 +243,13 @@ func startVerifyingMockServer(t *testing.T) *verifyingMockServer {
 
 				// Parse the frame to extract cmd and flags
 				if len(decrypted) >= 5 {
+					mock.mu.Lock()
 					mock.lastCmd = decrypted[0]
 					mock.lastFlags = uint32(decrypted[1]) |
 						uint32(decrypted[2])<<8 |
 						uint32(decrypted[3])<<16 |
 						uint32(decrypted[4])<<24
+					mock.mu.Unlock()
 				}
 
 				response := []byte("OK")
