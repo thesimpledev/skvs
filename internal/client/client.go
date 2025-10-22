@@ -39,7 +39,6 @@ func New(serverAddr string, encryptionKey []byte) (*Client, error) {
 	}
 
 	return &Client{addr: udpAddr, conn: conn, encryptor: e}, nil
-
 }
 
 func (c *Client) Close() {
@@ -109,5 +108,4 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 	}
 
 	return nil, fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastError)
-
 }
