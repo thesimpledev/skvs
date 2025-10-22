@@ -44,7 +44,7 @@ If a deadline is not provided, the call will fail immediately.
 import (
     "context"
     "time"
-    "github.com/thesimpledev/skvs/pkg/skvs"
+    "github.com/thesimpledev/skvs/cmd/client_lib"
 )
 
 func main() {

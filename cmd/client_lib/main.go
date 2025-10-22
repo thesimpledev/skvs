@@ -8,48 +8,36 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-const (
-	CommandSet    = "SET"
-	CommandGet    = "GET"
-	CommandDelete = "DELETE"
-	CommandExists = "EXISTS"
-)
-
 type Request struct {
-	Command   string
+	Command   byte
 	Key       string
 	Value     string
 	Overwrite bool
 	Old       bool
 }
 
-type Client struct {
-	*client.Client
+type Client interface {
+	Close()
+	Send(ctx context.Context, command byte, flags uint32, key, value string) ([]byte, error)
 }
 
-func New(addr string) (*Client, error) {
+type Skvs struct {
+	client Client
+}
+
+func New(addr string) (*Skvs, error) {
 	c, err := client.New(addr, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create client: %w", err)
 	}
-	return &Client{c}, nil
+	return &Skvs{c}, nil
 }
 
-func (c *Client) Do(ctx context.Context, req Request) (string, error) {
-	var cmd byte
-	switch req.Command {
-	case CommandSet:
-		cmd = protocol.CMD_SET
-	case CommandGet:
-		cmd = protocol.CMD_GET
-	case CommandDelete:
-		cmd = protocol.CMD_DELETE
-	case CommandExists:
-		cmd = protocol.CMD_EXISTS
-	default:
-		return "", fmt.Errorf("unknown command: %s", req.Command)
-	}
+func newWithClient(c Client) *Skvs {
+	return &Skvs{client: c}
+}
 
+func (s *Skvs) do(ctx context.Context, req Request) (string, error) {
 	var flags uint32
 	if req.Overwrite {
 		flags |= protocol.FLAG_OVERWRITE
@@ -58,27 +46,27 @@ func (c *Client) Do(ctx context.Context, req Request) (string, error) {
 		flags |= protocol.FLAG_OLD
 	}
 
-	resp, err := c.Send(ctx, cmd, flags, req.Key, req.Value)
+	resp, err := s.client.Send(ctx, req.Command, flags, req.Key, req.Value)
 	if err != nil {
 		return "", err
 	}
 	return string(resp), nil
 }
 
-func (c *Client) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) {
-	return c.Do(ctx, Request{Command: CommandSet, Key: key, Value: value, Overwrite: overwrite, Old: old})
+func (s *Skvs) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) {
+	return s.do(ctx, Request{Command: protocol.CMD_SET, Key: key, Value: value, Overwrite: overwrite, Old: old})
 }
 
-func (c *Client) Get(ctx context.Context, key string) (string, error) {
-	return c.Do(ctx, Request{Command: CommandGet, Key: key})
+func (s *Skvs) Get(ctx context.Context, key string) (string, error) {
+	return s.do(ctx, Request{Command: protocol.CMD_GET, Key: key})
 }
 
-func (c *Client) Delete(ctx context.Context, key string) (string, error) {
-	return c.Do(ctx, Request{Command: CommandDelete, Key: key})
+func (s *Skvs) Delete(ctx context.Context, key string) (string, error) {
+	return s.do(ctx, Request{Command: protocol.CMD_DELETE, Key: key})
 }
 
-func (c *Client) Exists(ctx context.Context, key string) (bool, error) {
-	resp, err := c.Do(ctx, Request{Command: CommandExists, Key: key})
+func (s *Skvs) Exists(ctx context.Context, key string) (bool, error) {
+	resp, err := s.do(ctx, Request{Command: protocol.CMD_EXISTS, Key: key})
 	if err != nil {
 		return false, err
 	}
