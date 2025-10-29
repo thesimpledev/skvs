@@ -11,7 +11,9 @@ import (
 )
 
 type Encryptor struct {
-	key []byte
+	key   []byte
+	block cipher.Block
+	gcm   cipher.AEAD
 }
 
 func New(key []byte) (*Encryptor, error) {
@@ -23,11 +25,7 @@ func New(key []byte) (*Encryptor, error) {
 		return nil, fmt.Errorf("key must be exactly 32 bytes for AES-256-GCM")
 	}
 
-	return &Encryptor{key: key}, nil
-}
-
-func (e *Encryptor) Encrypt(payload []byte) ([]byte, error) {
-	block, err := aes.NewCipher(e.key)
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("encryption: new cipher: %v", err)
 	}
@@ -37,31 +35,25 @@ func (e *Encryptor) Encrypt(payload []byte) ([]byte, error) {
 		return nil, fmt.Errorf("encryption: new gcm: %v", err)
 	}
 
-	nonce := make([]byte, gcm.NonceSize())
+	return &Encryptor{key: key, block: block, gcm: gcm}, nil
+}
+
+func (e *Encryptor) Encrypt(payload []byte) ([]byte, error) {
+	nonce := make([]byte, e.gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("encryption: nonce: %v", err)
 	}
 
-	return gcm.Seal(nonce, nonce, payload, nil), nil
+	return e.gcm.Seal(nonce, nonce, payload, nil), nil
 }
 
 func (e *Encryptor) Decrypt(payload []byte) ([]byte, error) {
-	block, err := aes.NewCipher(e.key)
-	if err != nil {
-		return nil, fmt.Errorf("decryption: new cipher: %v", err)
-	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("decryption: new gcm: %v", err)
-	}
-
-	if len(payload) < gcm.NonceSize() {
+	if len(payload) < e.gcm.NonceSize() {
 		return nil, fmt.Errorf("decryption: ciphertext too short")
 	}
 
-	nonce, ciphertext := payload[:gcm.NonceSize()], payload[gcm.NonceSize():]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	nonce, ciphertext := payload[:e.gcm.NonceSize()], payload[e.gcm.NonceSize():]
+	plaintext, err := e.gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decryption: %v", err)
 	}
