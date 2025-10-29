@@ -72,6 +72,9 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 
 	var lastError error
 	for attempt := range maxAttempts {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 		if attempt > 0 {
 			delay := min(baseDelay*(1<<(attempt-1)), time.Second)
 			select {
