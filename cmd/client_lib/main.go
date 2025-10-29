@@ -72,3 +72,7 @@ func (s *Skvs) Exists(ctx context.Context, key string) (bool, error) {
 	}
 	return resp == "1", nil
 }
+
+func (s *Skvs) Close() {
+	s.client.Close()
+}
