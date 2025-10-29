@@ -1,5 +1,5 @@
 # Simple Key Value Store
-
+read
 The Simple Key Value Store is a tiny UDP key–value server for a personal project where I needed something lighter than Valkey or Redis.. It’s intentionally minimal, fast, and easy to reason about.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/thesimpledev/skvs)](https://goreportcard.com/report/github.com/thesimpledev/skvs)
@@ -174,8 +174,6 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 
 ## Todo
 
-- Add debug logging for decoded commands.
-- Response typing: External client (Do) returns string, while the internal client returns []byte. May want to address
 
 
 ```
