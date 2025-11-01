@@ -18,13 +18,13 @@ func set(key string, value []byte, overwrite, old bool) ([]byte, error) {
 		returnValue = oldValue
 	}
 
-	return returnValue, nil
+	return append([]byte(nil), returnValue...), nil
 }
 
 func get(key string) ([]byte, error) {
 	mu.RLock()
 	defer mu.RUnlock()
-	return skvs[key], nil
+	return append([]byte(nil), skvs[key]...), nil
 }
 
 func del(key string) ([]byte, error) {
@@ -32,7 +32,7 @@ func del(key string) ([]byte, error) {
 	defer mu.Unlock()
 	returnValue := skvs[key]
 	delete(skvs, key)
-	return returnValue, nil
+	return append([]byte(nil), returnValue...), nil
 }
 
 func exists(key string) ([]byte, error) {
