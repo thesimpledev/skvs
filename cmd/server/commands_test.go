@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"log/slog"
 	"testing"
@@ -139,5 +140,22 @@ func TestSet(t *testing.T) {
 				t.Errorf("sksv = %v, want %v", string(app.skvs[tt.key]), string(tt.wantMap))
 			}
 		})
+	}
+}
+
+func TestGet(t *testing.T) {
+	app := newTestApp()
+
+	want := []byte("Jack")
+
+	_, err := app.set("cat", want, false, false)
+	if err != nil {
+		t.Fatal("Get Test failed during set")
+	}
+
+	got := app.get("cat")
+
+	if !bytes.Equal(got, want) {
+		t.Errorf("expected %v, got %v", want, got)
 	}
 }
