@@ -2,7 +2,7 @@ package main
 
 import "bytes"
 
-func (app *application) set(key string, value []byte, overwrite, old bool) ([]byte, error) {
+func (app *application) set(key string, value []byte, overwrite, old bool) []byte {
 	var returnValue []byte
 	var exists bool
 	app.mu.Lock()
@@ -17,7 +17,7 @@ func (app *application) set(key string, value []byte, overwrite, old bool) ([]by
 	if returnValue == nil {
 		returnValue = []byte("")
 	}
-	return bytes.Clone(returnValue), nil
+	return bytes.Clone(returnValue)
 }
 
 func (app *application) get(key string) []byte {
