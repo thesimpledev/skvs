@@ -31,7 +31,7 @@ func (app *application) processMessage(frame []byte) ([]byte, error) {
 
 	switch cmd {
 	case protocol.CMD_SET:
-		return app.set(key, value, overwrite, old)
+		return app.set(key, value, overwrite, old), nil
 	case protocol.CMD_GET:
 		return app.get(key), nil
 	case protocol.CMD_DELETE:
