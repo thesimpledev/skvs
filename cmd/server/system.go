@@ -33,11 +33,11 @@ func (app *application) processMessage(frame []byte) ([]byte, error) {
 	case protocol.CMD_SET:
 		return app.set(key, value, overwrite, old)
 	case protocol.CMD_GET:
-		return app.get(key)
+		return app.get(key), nil
 	case protocol.CMD_DELETE:
-		return app.del(key)
+		return app.del(key), nil
 	case protocol.CMD_EXISTS:
-		return app.exists(key)
+		return app.exists(key), nil
 	default:
 		return nil, fmt.Errorf("unknown command: %d", cmd)
 	}

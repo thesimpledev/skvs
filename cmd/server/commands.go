@@ -20,26 +20,26 @@ func (app *application) set(key string, value []byte, overwrite, old bool) ([]by
 	return bytes.Clone(returnValue), nil
 }
 
-func (app *application) get(key string) ([]byte, error) {
+func (app *application) get(key string) []byte {
 	app.mu.RLock()
 	defer app.mu.RUnlock()
-	return bytes.Clone(app.skvs[key]), nil
+	return bytes.Clone(app.skvs[key])
 }
 
-func (app *application) del(key string) ([]byte, error) {
+func (app *application) del(key string) []byte {
 	app.mu.Lock()
 	defer app.mu.Unlock()
 	returnValue := app.skvs[key]
 	delete(app.skvs, key)
-	return bytes.Clone(returnValue), nil
+	return bytes.Clone(returnValue)
 }
 
-func (app *application) exists(key string) ([]byte, error) {
+func (app *application) exists(key string) []byte {
 	app.mu.RLock()
 	defer app.mu.RUnlock()
 	if _, exists := app.skvs[key]; exists {
-		return []byte("1"), nil
+		return []byte("1")
 	}
 
-	return []byte("0"), nil
+	return []byte("0")
 }
