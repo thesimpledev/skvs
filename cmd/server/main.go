@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/thesimpledev/skvs/internal/encryption"
 	"github.com/thesimpledev/skvs/internal/protocol"
@@ -14,10 +15,17 @@ type config struct {
 	port int
 }
 
+type Encryptor interface {
+	Encrypt([]byte) ([]byte, error)
+	Decrypt([]byte) ([]byte, error)
+}
+
 type application struct {
 	cfg       *config
 	log       *slog.Logger
-	encryptor *encryption.Encryptor
+	encryptor Encryptor
+	skvs      map[string][]byte
+	mu        sync.RWMutex
 }
 
 func main() {
@@ -43,6 +51,7 @@ func main() {
 		cfg:       config,
 		log:       logger,
 		encryptor: e,
+		skvs:      make(map[string][]byte),
 	}
 
 	app.log.Info("Launching", "port", port)
@@ -52,5 +61,4 @@ func main() {
 		app.log.Error("server error", "err", err)
 		os.Exit(1)
 	}
-
 }

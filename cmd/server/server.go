@@ -47,7 +47,6 @@ func (app *application) serve() error {
 		copy(data, buf[:n])
 		bufPool.Put(bufPtr)
 		go func() {
-
 			app.handlePacket(server, clientAddr, data)
 		}()
 	}
@@ -61,7 +60,7 @@ func (app *application) handlePacket(server *net.UDPConn, clientAddr *net.UDPAdd
 		return
 	}
 
-	response, err := processMessage(payload)
+	response, err := app.processMessage(payload)
 	if err != nil {
 		app.log.Error("failed to process message", "err", err)
 		app.sendMessage([]byte("ERROR: failed to process message"), server, clientAddr)

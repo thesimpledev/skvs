@@ -33,7 +33,7 @@ func New(addr string) (*Skvs, error) {
 	return &Skvs{c}, nil
 }
 
-func newWithClient(c Client) *Skvs {
+func NewWithClient(c Client) *Skvs {
 	return &Skvs{client: c}
 }
 

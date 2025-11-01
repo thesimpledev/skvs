@@ -7,7 +7,7 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-func processMessage(frame []byte) ([]byte, error) {
+func (app *application) processMessage(frame []byte) ([]byte, error) {
 	if len(frame) != protocol.FrameSize {
 		return nil, fmt.Errorf("invalid frame size %d", len(frame))
 	}
@@ -31,15 +31,14 @@ func processMessage(frame []byte) ([]byte, error) {
 
 	switch cmd {
 	case protocol.CMD_SET:
-		return set(key, value, overwrite, old)
+		return app.set(key, value, overwrite, old)
 	case protocol.CMD_GET:
-		return get(key)
+		return app.get(key)
 	case protocol.CMD_DELETE:
-		return del(key)
+		return app.del(key)
 	case protocol.CMD_EXISTS:
-		return exists(key)
+		return app.exists(key)
 	default:
 		return nil, fmt.Errorf("unknown command: %d", cmd)
 	}
-
 }
