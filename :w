@@ -172,37 +172,39 @@ func TestDel(t *testing.T) {
 
 func TestExists(t *testing.T) {
 	tests := []struct {
-		name  string
-		key   string
+		name string
+		key string
 		value []byte
-		want  []byte
+		want []byte
 	}{
 		{
-			name:  "item exists",
-			key:   "cat",
-			value: []byte("jack"),
-			want:  []byte("1"),
+			name: "item exists",
+			key: "cat",
+			value:[]byte("jack"),
+			want: []byte("1"),
+
 		},
 		{
 			name: "item doesn't exist",
-			key:  "dog",
+			key: "dog",
 			want: []byte("0"),
 		},
 	}
-
+	
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			app := newTestApp()
+		t.Run(tt.name, func(t *testing.T){
+			app.newTestApp()
 
 			if tt.value != nil {
 				_ = app.set(tt.key, tt.value, false, false)
 			}
 
-			got := app.exists(tt.key)
+			got := app.exists(key)
 
-			if !bytes.Equal(tt.want, got) {
-				t.Errorf("want %v, got %v", tt.want, got)
+			if !compare(tt.want, got) {
+				t.Errorf("want %v, %got %v", tt.want, got)
 			}
 		})
 	}
+
 }
