@@ -124,13 +124,9 @@ func TestSet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			app := newTestApp()
 			if tt.initial != nil {
-				_, _ = app.set(tt.key, tt.initial, false, false)
+				_ = app.set(tt.key, tt.initial, false, false)
 			}
-			got, err := app.set(tt.key, tt.value, tt.overwrite, tt.old)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("set() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			got := app.set(tt.key, tt.value, tt.overwrite, tt.old)
 
 			if string(got) != string(tt.wantReturn) {
 				t.Errorf("set() = %v, want %v", string(got), string(tt.wantReturn))
@@ -148,14 +144,29 @@ func TestGet(t *testing.T) {
 
 	want := []byte("Jack")
 
-	_, err := app.set("cat", want, false, false)
-	if err != nil {
-		t.Fatal("Get Test failed during set")
-	}
+	_ = app.set("cat", want, false, false)
 
 	got := app.get("cat")
 
 	if !bytes.Equal(got, want) {
 		t.Errorf("expected %v, got %v", want, got)
+	}
+}
+
+func TestDel(t *testing.T) {
+	app := newTestApp()
+
+	want := []byte("Jack")
+
+	_ = app.set("cat", want, false, false)
+
+	got := app.del("cat")
+
+	if !bytes.Equal(want, got) {
+		t.Errorf("delete return - want %v, got %v", want, got)
+	}
+
+	if !bytes.Equal(app.skvs["cat"], nil) {
+		t.Errorf("delete map after - want nil, got %v", got)
 	}
 }
