@@ -1,5 +1,7 @@
 package main
 
+import "bytes"
+
 func set(key string, value []byte, overwrite, old bool) ([]byte, error) {
 	var returnValue []byte
 	mu.Lock()
@@ -13,18 +15,18 @@ func set(key string, value []byte, overwrite, old bool) ([]byte, error) {
 			returnValue = value
 		}
 
-		skvs[key] = value
+		skvs[key] = bytes.Clone(value)
 	} else {
 		returnValue = oldValue
 	}
 
-	return append([]byte(nil), returnValue...), nil
+	return bytes.Clone(returnValue), nil
 }
 
 func get(key string) ([]byte, error) {
 	mu.RLock()
 	defer mu.RUnlock()
-	return append([]byte(nil), skvs[key]...), nil
+	return bytes.Clone(skvs[key]), nil
 }
 
 func del(key string) ([]byte, error) {
@@ -32,7 +34,7 @@ func del(key string) ([]byte, error) {
 	defer mu.Unlock()
 	returnValue := skvs[key]
 	delete(skvs, key)
-	return append([]byte(nil), returnValue...), nil
+	return bytes.Clone(returnValue), nil
 }
 
 func exists(key string) ([]byte, error) {
