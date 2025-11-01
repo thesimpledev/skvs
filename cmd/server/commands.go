@@ -2,45 +2,42 @@ package main
 
 import "bytes"
 
-func set(key string, value []byte, overwrite, old bool) ([]byte, error) {
+func (app *application) set(key string, value []byte, overwrite, old bool) ([]byte, error) {
 	var returnValue []byte
-	mu.Lock()
-	defer mu.Unlock()
-	if old {
-		returnValue = skvs[key]
-	}
+	var exists bool
+	app.mu.Lock()
+	defer app.mu.Unlock()
 
-	if oldValue, exists := skvs[key]; !exists || overwrite {
+	if returnValue, exists = app.skvs[key]; !exists || overwrite {
 		if !old {
 			returnValue = value
 		}
-
-		skvs[key] = bytes.Clone(value)
-	} else {
-		returnValue = oldValue
+		app.skvs[key] = bytes.Clone(value)
 	}
-
+	if returnValue == nil {
+		returnValue = []byte("")
+	}
 	return bytes.Clone(returnValue), nil
 }
 
-func get(key string) ([]byte, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	return bytes.Clone(skvs[key]), nil
+func (app *application) get(key string) ([]byte, error) {
+	app.mu.RLock()
+	defer app.mu.RUnlock()
+	return bytes.Clone(app.skvs[key]), nil
 }
 
-func del(key string) ([]byte, error) {
-	mu.Lock()
-	defer mu.Unlock()
-	returnValue := skvs[key]
-	delete(skvs, key)
+func (app *application) del(key string) ([]byte, error) {
+	app.mu.Lock()
+	defer app.mu.Unlock()
+	returnValue := app.skvs[key]
+	delete(app.skvs, key)
 	return bytes.Clone(returnValue), nil
 }
 
-func exists(key string) ([]byte, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-	if _, exists := skvs[key]; exists {
+func (app *application) exists(key string) ([]byte, error) {
+	app.mu.RLock()
+	defer app.mu.RUnlock()
+	if _, exists := app.skvs[key]; exists {
 		return []byte("1"), nil
 	}
 
