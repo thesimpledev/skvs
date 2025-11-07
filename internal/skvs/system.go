@@ -1,4 +1,4 @@
-package main
+package skvs
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-func (app *application) processMessage(frame []byte) ([]byte, error) {
+func (app *App) ProcessMessage(frame []byte) ([]byte, error) {
 	if len(frame) != protocol.FrameSize {
 		return nil, fmt.Errorf("invalid frame size %d", len(frame))
 	}

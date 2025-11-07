@@ -8,6 +8,7 @@ import (
 
 	"github.com/thesimpledev/skvs/internal/encryption"
 	"github.com/thesimpledev/skvs/internal/protocol"
+	"github.com/thesimpledev/skvs/internal/skvs"
 )
 
 type Encryptor interface {
@@ -15,16 +16,16 @@ type Encryptor interface {
 	Decrypt([]byte) ([]byte, error)
 }
 
-type application struct {
+type server struct {
 	log       *slog.Logger
 	encryptor Encryptor
-	skvs      map[string][]byte
-	mu        sync.RWMutex
+	conn      *net.UDPConn
+	port      string
+	app       *skvs.App
 }
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	port := os.Getenv("PORT")
 
 	e, err := encryption.New(nil)
 	if err != nil {
@@ -32,26 +33,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := &application{
+	server := &server{
 		log:       logger,
 		encryptor: e,
-		skvs:      make(map[string][]byte),
 	}
+	server.port = os.Getenv("PORT")
+	server.app = skvs.New(logger)
 
-	server, err := startUDPServer(port)
+	udpConn, err := server.startUDPServer()
 	if err != nil {
 		logger.Error("unable to start UDP Server", "err", err)
 		os.Exit(1)
 	}
-
+	server.conn = udpConn
 	defer func() {
-		_ = server.Close()
+		_ = udpConn.Close()
 	}()
 
-	serverListen(server, app)
+	server.serverListen()
 }
 
-func serverListen(server *net.UDPConn, app *application) {
+func (s *server) serverListen() {
 	bufPool := sync.Pool{
 		New: func() any {
 			buf := make([]byte, protocol.EncryptedFrameSize)
@@ -62,9 +64,9 @@ func serverListen(server *net.UDPConn, app *application) {
 	for {
 		bufPtr := bufPool.Get().(*[]byte)
 		buf := *bufPtr
-		n, clientAddr, err := server.ReadFromUDP(buf)
+		n, clientAddr, err := s.conn.ReadFromUDP(buf)
 		if err != nil {
-			app.log.Error("failed to read UDP packet", "err", err)
+			s.log.Error("failed to read UDP packet", "err", err)
 			bufPool.Put(bufPtr)
 			continue
 		}
@@ -73,13 +75,13 @@ func serverListen(server *net.UDPConn, app *application) {
 		copy(data, buf[:n])
 		bufPool.Put(bufPtr)
 		go func() {
-			app.handlePacket(server, clientAddr, data)
+			s.handlePacket(clientAddr, data)
 		}()
 	}
 }
 
-func startUDPServer(port string) (*net.UDPConn, error) {
-	udpAddr, err := net.ResolveUDPAddr("udp", ":"+port)
+func (s *server) startUDPServer() (*net.UDPConn, error) {
+	udpAddr, err := net.ResolveUDPAddr("udp", ":"+s.port)
 	if err != nil {
 		return nil, err
 	}

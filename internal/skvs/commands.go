@@ -1,8 +1,8 @@
-package main
+package skvs
 
 import "bytes"
 
-func (app *application) set(key string, value []byte, overwrite, old bool) []byte {
+func (app *App) set(key string, value []byte, overwrite, old bool) []byte {
 	var returnValue []byte
 	var exists bool
 	app.mu.Lock()
@@ -20,13 +20,13 @@ func (app *application) set(key string, value []byte, overwrite, old bool) []byt
 	return bytes.Clone(returnValue)
 }
 
-func (app *application) get(key string) []byte {
+func (app *App) get(key string) []byte {
 	app.mu.RLock()
 	defer app.mu.RUnlock()
 	return bytes.Clone(app.skvs[key])
 }
 
-func (app *application) del(key string) []byte {
+func (app *App) del(key string) []byte {
 	app.mu.Lock()
 	defer app.mu.Unlock()
 	returnValue := app.skvs[key]
@@ -34,7 +34,7 @@ func (app *application) del(key string) []byte {
 	return bytes.Clone(returnValue)
 }
 
-func (app *application) exists(key string) []byte {
+func (app *App) exists(key string) []byte {
 	app.mu.RLock()
 	defer app.mu.RUnlock()
 	if _, exists := app.skvs[key]; exists {

@@ -1,4 +1,4 @@
-package main
+package skvs
 
 import (
 	"bytes"
@@ -17,15 +17,12 @@ func (e *te) Decrypt(input []byte) ([]byte, error) {
 	return input, nil
 }
 
-func newTestApp() *application {
+func newTestApp() *App {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	e := &te{}
-
-	app := &application{
-		log:       logger,
-		encryptor: e,
-		skvs:      make(map[string][]byte),
+	app := &App{
+		log:  logger,
+		skvs: make(map[string][]byte),
 	}
 
 	return app
