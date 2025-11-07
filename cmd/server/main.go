@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"os"
-	"sync"
+	"time"
 
 	"github.com/thesimpledev/skvs/internal/encryption"
-	"github.com/thesimpledev/skvs/internal/protocol"
 	"github.com/thesimpledev/skvs/internal/skvs"
 )
 
@@ -17,14 +17,18 @@ type Encryptor interface {
 }
 
 type server struct {
-	log       *slog.Logger
-	encryptor Encryptor
-	conn      *net.UDPConn
-	port      string
-	app       *skvs.App
+	log         *slog.Logger
+	encryptor   Encryptor
+	conn        *net.UDPConn
+	port        string
+	app         *skvs.App
+	semaphore   chan struct{}
+	readTimeout time.Duration
 }
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	e, err := encryption.New(nil)
@@ -34,11 +38,13 @@ func main() {
 	}
 
 	server := &server{
-		log:       logger,
-		encryptor: e,
+		log:         logger,
+		encryptor:   e,
+		readTimeout: 100 * time.Millisecond,
 	}
 	server.port = os.Getenv("PORT")
 	server.app = skvs.New(logger)
+	server.semaphore = make(chan struct{}, 1000)
 
 	udpConn, err := server.startUDPServer()
 	if err != nil {
@@ -50,42 +56,5 @@ func main() {
 		_ = udpConn.Close()
 	}()
 
-	server.serverListen()
-}
-
-func (s *server) serverListen() {
-	bufPool := sync.Pool{
-		New: func() any {
-			buf := make([]byte, protocol.EncryptedFrameSize)
-			return &buf
-		},
-	}
-
-	for {
-		bufPtr := bufPool.Get().(*[]byte)
-		buf := *bufPtr
-		n, clientAddr, err := s.conn.ReadFromUDP(buf)
-		if err != nil {
-			s.log.Error("failed to read UDP packet", "err", err)
-			bufPool.Put(bufPtr)
-			continue
-		}
-
-		data := make([]byte, n)
-		copy(data, buf[:n])
-		bufPool.Put(bufPtr)
-		go func() {
-			s.handlePacket(clientAddr, data)
-		}()
-	}
-}
-
-func (s *server) startUDPServer() (*net.UDPConn, error) {
-	udpAddr, err := net.ResolveUDPAddr("udp", ":"+s.port)
-	if err != nil {
-		return nil, err
-	}
-
-	server, err := net.ListenUDP("udp", udpAddr)
-	return server, err
+	server.serverListen(ctx)
 }
