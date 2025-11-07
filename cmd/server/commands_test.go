@@ -18,16 +18,11 @@ func (e *te) Decrypt(input []byte) ([]byte, error) {
 }
 
 func newTestApp() *application {
-	config := &config{
-		port: 8080,
-	}
-
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	e := &te{}
 
 	app := &application{
-		cfg:       config,
 		log:       logger,
 		encryptor: e,
 		skvs:      make(map[string][]byte),
