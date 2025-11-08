@@ -4,7 +4,6 @@ test:
 	go test ./... -coverprofile=test/coverage.out
 	go tool cover -func=test/coverage.out
 	go tool cover -html=test/coverage.out -o test/coverage.html
-	open test/coverage.html
 
 test-extra:
 	rm -f test/*
@@ -13,7 +12,6 @@ test-extra:
 	go test ./... -race -vet=all -shuffle=on -count=1 -timeout=30s -coverprofile=test/coverage.out
 	go tool cover -func=test/coverage.out
 	go tool cover -html=test/coverage.out -o test/coverage.html
-	open test/coverage.html
 
 test-full:
 	rm -f test/*
@@ -25,4 +23,6 @@ test-full:
 	go test ./... -race -vet=all -shuffle=on -count=1 -timeout=30s -coverprofile=test/coverage.out
 	go tool cover -func=test/coverage.out
 	go tool cover -html=test/coverage.out -o test/coverage.html
+
+test-open:
 	open test/coverage.html
