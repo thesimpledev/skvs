@@ -68,3 +68,14 @@ func TestEncryptionDecryption(t *testing.T) {
 		t.Errorf("expected %v got %v", expected, got)
 	}
 }
+
+func TestDecryptShortPayload(t *testing.T) {
+	encryptor, _ := New([]byte("asdfhjshajshehdhdkfhehdhsakjhhki"))
+
+	shortPayload := []byte("short")
+	_, err := encryptor.Decrypt(shortPayload)
+
+	if err == nil {
+		t.Error("expected error for short payload, got nil")
+	}
+}
