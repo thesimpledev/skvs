@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"os"
 )
 
 type Encryptor struct {
@@ -17,10 +16,6 @@ type Encryptor struct {
 }
 
 func New(key []byte) (*Encryptor, error) {
-	if key == nil {
-		key = []byte(os.Getenv("SKVS_ENCRYPTION_KEY"))
-	}
-
 	if len(key) != 32 {
 		return nil, fmt.Errorf("key must be exactly 32 bytes for AES-256-GCM")
 	}

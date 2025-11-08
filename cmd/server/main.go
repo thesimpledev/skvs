@@ -33,7 +33,7 @@ func main() {
 	defer cancel()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	e, err := encryption.New(nil)
+	e, err := encryption.New([]byte(os.Getenv("SKVS_ENCRYPTION_KEY")))
 	if err != nil {
 		logger.Error("Unable to create Encryptor: ", "err", err)
 		os.Exit(1)
