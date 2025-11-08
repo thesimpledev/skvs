@@ -7,18 +7,18 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-func commandRouting(app SKVS, frame *frameDTO) ([]byte, error) {
-	switch frame.cmd {
+func commandRouting(app SKVS, frame protocol.FrameDTO) ([]byte, error) {
+	switch frame.Cmd {
 	case protocol.CMD_SET:
-		return app.set(frame.key, frame.value, frame.overwrite, frame.old), nil
+		return app.set(frame.Key, frame.Value, frame.Overwrite, frame.Old), nil
 	case protocol.CMD_GET:
-		return app.get(frame.key), nil
+		return app.get(frame.Key), nil
 	case protocol.CMD_DELETE:
-		return app.del(frame.key), nil
+		return app.del(frame.Key), nil
 	case protocol.CMD_EXISTS:
-		return app.exists(frame.key), nil
+		return app.exists(frame.Key), nil
 	default:
-		return nil, fmt.Errorf("unknown command: %d", frame.cmd)
+		return nil, fmt.Errorf("unknown command: %d", frame.Cmd)
 	}
 }
 

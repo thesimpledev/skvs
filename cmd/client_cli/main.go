@@ -28,6 +28,11 @@ func main() {
 		value = args[2]
 	}
 
+	dto, err := protocol.NewFrameDTO(commandStr, key, value, *overwrite, *old)
+	if err != nil {
+		fmt.Printf("error creating data transfer object: %v\n", err)
+	}
+
 	c, err := client.New(fmt.Sprintf("localhost:%d", protocol.Port), nil)
 	if err != nil {
 		fmt.Println("Error creating client:", err)
@@ -35,33 +40,10 @@ func main() {
 	}
 	defer c.Close()
 
-	var cmd byte
-	switch commandStr {
-	case "set":
-		cmd = protocol.CMD_SET
-	case "get":
-		cmd = protocol.CMD_GET
-	case "delete":
-		cmd = protocol.CMD_DELETE
-	case "exists":
-		cmd = protocol.CMD_EXISTS
-	default:
-		fmt.Println("Unknown command:", commandStr)
-		os.Exit(1)
-	}
-
-	var flags uint32
-	if *overwrite {
-		flags |= protocol.FLAG_OVERWRITE
-	}
-	if *old {
-		flags |= protocol.FLAG_OLD
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), protocol.Timeout)
 	defer cancel()
 
-	resp, err := c.Send(ctx, cmd, flags, key, value)
+	resp, err := c.Send(ctx, dto)
 	if err != nil {
 		fmt.Println("Error:", err)
 		os.Exit(1)

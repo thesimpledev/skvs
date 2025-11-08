@@ -8,71 +8,58 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-type Request struct {
-	Command   byte
-	Key       string
-	Value     string
-	Overwrite bool
-	Old       bool
+type clientLibrary struct {
+	client *client.Client
 }
 
-type Client interface {
-	Close()
-	Send(ctx context.Context, command byte, flags uint32, key, value string) ([]byte, error)
-}
-
-type Skvs struct {
-	client Client
-}
-
-func New(addr string) (*Skvs, error) {
+func New(addr string) (*clientLibrary, error) {
 	c, err := client.New(addr, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create client: %w", err)
 	}
-	return &Skvs{c}, nil
+	return &clientLibrary{client: c}, nil
 }
 
-func NewWithClient(c Client) *Skvs {
-	return &Skvs{client: c}
-}
-
-func (s *Skvs) do(ctx context.Context, req Request) (string, error) {
-	var flags uint32
-	if req.Overwrite {
-		flags |= protocol.FLAG_OVERWRITE
-	}
-	if req.Old {
-		flags |= protocol.FLAG_OLD
-	}
-
-	resp, err := s.client.Send(ctx, req.Command, flags, req.Key, req.Value)
+func (c *clientLibrary) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) {
+	dto, err := protocol.NewFrameDTO("set", key, value, overwrite, old)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("set failed for key: %s - value: %s with error %v", key, value, err)
 	}
-	return string(resp), nil
+
+	return c.client.Send(ctx, dto)
 }
 
-func (s *Skvs) Set(ctx context.Context, key, value string, overwrite, old bool) (string, error) {
-	return s.do(ctx, Request{Command: protocol.CMD_SET, Key: key, Value: value, Overwrite: overwrite, Old: old})
+func (c *clientLibrary) Get(ctx context.Context, key string) (string, error) {
+	dto, err := protocol.NewFrameDTO("get", key, "", false, false)
+	if err != nil {
+		return "", fmt.Errorf("get failed for key: %s with error %v", key, err)
+	}
+
+	return c.client.Send(ctx, dto)
 }
 
-func (s *Skvs) Get(ctx context.Context, key string) (string, error) {
-	return s.do(ctx, Request{Command: protocol.CMD_GET, Key: key})
+func (c *clientLibrary) Delete(ctx context.Context, key string) (string, error) {
+	dto, err := protocol.NewFrameDTO("delete", key, "", false, false)
+	if err != nil {
+		return "", fmt.Errorf("delete failed for key: %s with error %v", key, err)
+	}
+
+	return c.client.Send(ctx, dto)
 }
 
-func (s *Skvs) Delete(ctx context.Context, key string) (string, error) {
-	return s.do(ctx, Request{Command: protocol.CMD_DELETE, Key: key})
-}
+func (c *clientLibrary) Exists(ctx context.Context, key string) (bool, error) {
+	dto, err := protocol.NewFrameDTO("exists", key, "", false, false)
+	if err != nil {
+		return false, fmt.Errorf("exists failed for key: %s with error %v", key, err)
+	}
 
-func (s *Skvs) Exists(ctx context.Context, key string) (bool, error) {
-	resp, err := s.do(ctx, Request{Command: protocol.CMD_EXISTS, Key: key})
+	resp, err := c.client.Send(ctx, dto)
 	if err != nil {
 		return false, err
 	}
 	return resp == "1", nil
 }
 
-func (s *Skvs) Close() {
-	s.client.Close()
+func (c *clientLibrary) Close() {
+	c.client.Close()
 }

@@ -41,46 +41,46 @@ func newTestApp() *App {
 func TestCommandrouting(t *testing.T) {
 	tests := []struct {
 		name  string
-		frame *frameDTO
+		frame protocol.FrameDTO
 		want  []byte
 		err   bool
 	}{
 		{
 			name: "set command",
-			frame: &frameDTO{
-				cmd: protocol.CMD_SET,
+			frame: protocol.FrameDTO{
+				Cmd: protocol.CMD_SET,
 			},
 			want: []byte("set"),
 			err:  false,
 		},
 		{
 			name: "get command",
-			frame: &frameDTO{
-				cmd: protocol.CMD_GET,
+			frame: protocol.FrameDTO{
+				Cmd: protocol.CMD_GET,
 			},
 			want: []byte("get"),
 			err:  false,
 		},
 		{
 			name: "del command",
-			frame: &frameDTO{
-				cmd: protocol.CMD_DELETE,
+			frame: protocol.FrameDTO{
+				Cmd: protocol.CMD_DELETE,
 			},
 			want: []byte("del"),
 			err:  false,
 		},
 		{
 			name: "exists command",
-			frame: &frameDTO{
-				cmd: protocol.CMD_EXISTS,
+			frame: protocol.FrameDTO{
+				Cmd: protocol.CMD_EXISTS,
 			},
 			want: []byte("exists"),
 			err:  false,
 		},
 		{
 			name: "unknown command",
-			frame: &frameDTO{
-				cmd: ';',
+			frame: protocol.FrameDTO{
+				Cmd: ';',
 			},
 			want: []byte(""),
 			err:  true,

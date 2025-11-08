@@ -45,42 +45,33 @@ func (c *Client) Close() {
 	_ = c.conn.Close()
 }
 
-func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, value string) ([]byte, error) {
+func (c *Client) Send(ctx context.Context, dto protocol.FrameDTO) (string, error) {
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		return nil, fmt.Errorf("Send requires a context with deadline")
+		return "", fmt.Errorf("Send requires a context with deadline")
 	}
 
-	frame := make([]byte, protocol.FrameSize)
-	// Building the frame manually. While I could use the encoding/binary package I decided doing it by hand would be more clear.
-	frame[0] = command
-	frame[1] = byte(flags)
-	frame[2] = byte(flags >> 8)
-	frame[3] = byte(flags >> 16)
-	frame[4] = byte(flags >> 24)
-
-	copy(frame[5:5+protocol.KeySize], []byte(key))
-	copy(frame[5+protocol.KeySize:], []byte(value))
+	frame := protocol.DtoToFrame(dto)
 
 	encrypted, err := c.encryptor.Encrypt(frame)
 	if err != nil {
-		return nil, fmt.Errorf("encryption failed: %w", err)
+		return "", fmt.Errorf("encryption failed: %w", err)
 	}
 	if len(encrypted) != protocol.EncryptedFrameSize {
-		return nil, fmt.Errorf("encrypted frame size mismatch: got %d, want %d", len(encrypted), protocol.EncryptedFrameSize)
+		return "", fmt.Errorf("encrypted frame size mismatch: got %d, want %d", len(encrypted), protocol.EncryptedFrameSize)
 	}
 
 	var lastError error
 	for attempt := range maxAttempts {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return "", ctx.Err()
 		}
 		if attempt > 0 {
 			delay := min(baseDelay*(1<<(attempt-1)), time.Second)
 			select {
 			case <-time.After(delay):
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				return "", ctx.Err()
 			}
 		}
 
@@ -107,8 +98,8 @@ func (c *Client) Send(ctx context.Context, command byte, flags uint32, key, valu
 			continue
 		}
 
-		return decrypted, nil
+		return string(decrypted), nil
 	}
 
-	return nil, fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastError)
+	return "", fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastError)
 }

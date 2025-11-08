@@ -100,7 +100,7 @@ func FrameToDTO(frame []byte) (FrameDTO, error) {
 	key := string(bytes.TrimRight(keyBytes, "\x00"))
 	value := bytes.TrimRight(valBytes, "\x00")
 
-	frameDTO := FrameDTO{
+	frameDTO := &FrameDTO{
 		Cmd:       cmd,
 		Key:       key,
 		Value:     value,
@@ -111,7 +111,7 @@ func FrameToDTO(frame []byte) (FrameDTO, error) {
 	return frameDTO, nil
 }
 
-func DtoToFrame(dto FrameDTO) []byte {
+func DtoToFrame(dto *FrameDTO) []byte {
 	frame := make([]byte, FrameSize)
 	var flags uint32
 

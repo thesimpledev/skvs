@@ -2,8 +2,11 @@
 package skvs
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
+
+	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
 type SKVS interface {
@@ -24,4 +27,12 @@ func New(log *slog.Logger) *App {
 		log:  log,
 		skvs: make(map[string][]byte, 0),
 	}
+}
+
+func ProcessMessage(app *App, frame []byte) ([]byte, error) {
+	frameDTO, err := protocol.FrameToDTO(frame)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse frame: %v", err)
+	}
+	return commandRouting(app, frameDTO)
 }
