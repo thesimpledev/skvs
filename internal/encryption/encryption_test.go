@@ -3,6 +3,8 @@ package encryption
 import (
 	"bytes"
 	"testing"
+
+	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
 func TestNew(t *testing.T) {
@@ -49,10 +51,16 @@ func TestNew(t *testing.T) {
 
 func TestEncryptionDecryption(t *testing.T) {
 	encryptor, err := New([]byte("asdfhjshajshehdhdkfhehdhsakjhhki"))
-	expected := []byte("Hello world this is really secret")
 	if err != nil {
 		t.Fatalf("got error: %v", err)
 	}
+
+	dto := protocol.FrameDTO{
+		Cmd:   protocol.CMD_SET,
+		Key:   "testkey",
+		Value: []byte("Hello world this is really secret"),
+	}
+	expected := protocol.DtoToFrame(dto)
 
 	payload, err := encryptor.Encrypt(expected)
 	if err != nil {
@@ -66,6 +74,19 @@ func TestEncryptionDecryption(t *testing.T) {
 
 	if !bytes.Equal(expected, got) {
 		t.Errorf("expected %v got %v", expected, got)
+	}
+}
+
+func TestEncryptionDecryptionWrongLength(t *testing.T) {
+	encryptor, err := New([]byte("asdfhjshajshehdhdkfhehdhsakjhhki"))
+	expected := []byte("Hello world this is really secret")
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	_, err = encryptor.Encrypt(expected)
+	if err == nil {
+		t.Errorf("Expected Length error got none")
 	}
 }
 

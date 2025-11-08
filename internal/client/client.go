@@ -57,9 +57,6 @@ func (c *Client) Send(ctx context.Context, dto protocol.FrameDTO) (string, error
 	if err != nil {
 		return "", fmt.Errorf("encryption failed: %w", err)
 	}
-	if len(encrypted) != protocol.EncryptedFrameSize {
-		return "", fmt.Errorf("encrypted frame size mismatch: got %d, want %d", len(encrypted), protocol.EncryptedFrameSize)
-	}
 
 	var lastError error
 	for attempt := range maxAttempts {

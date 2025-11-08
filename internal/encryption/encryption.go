@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+
+	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
 type Encryptor struct {
@@ -38,8 +40,13 @@ func (e *Encryptor) Encrypt(payload []byte) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("encryption: nonce: %v", err)
 	}
+	encryptedPayload := e.gcm.Seal(nonce, nonce, payload, nil)
 
-	return e.gcm.Seal(nonce, nonce, payload, nil), nil
+	if len(encryptedPayload) != protocol.EncryptedFrameSize {
+		return nil, fmt.Errorf("encrypted frame size mismatch: got %d want %d", len(encryptedPayload), protocol.EncryptedFrameSize)
+	}
+
+	return encryptedPayload, nil
 }
 
 func (e *Encryptor) Decrypt(payload []byte) ([]byte, error) {
