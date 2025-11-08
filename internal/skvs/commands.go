@@ -7,7 +7,7 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-func (app *App) commandRouting(frame *frameDTO) ([]byte, error) {
+func commandRouting(app SKVS, frame *frameDTO) ([]byte, error) {
 	switch frame.cmd {
 	case protocol.CMD_SET:
 		return app.set(frame.key, frame.value, frame.overwrite, frame.old), nil

@@ -6,6 +6,13 @@ import (
 	"sync"
 )
 
+type SKVS interface {
+	set(key string, value []byte, overwrite, old bool) []byte
+	get(key string) []byte
+	del(key string) []byte
+	exists(key string) []byte
+}
+
 type App struct {
 	log  *slog.Logger
 	skvs map[string][]byte

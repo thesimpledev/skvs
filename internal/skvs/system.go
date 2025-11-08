@@ -48,10 +48,10 @@ func frameToDTO(frame []byte) (*frameDTO, error) {
 	return frameDTO, nil
 }
 
-func (app *App) ProcessMessage(frame []byte) ([]byte, error) {
+func ProcessMessage(app *App, frame []byte) ([]byte, error) {
 	frameDTO, err := frameToDTO(frame)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse frame: %v", err)
 	}
-	return app.commandRouting(frameDTO)
+	return commandRouting(app, frameDTO)
 }

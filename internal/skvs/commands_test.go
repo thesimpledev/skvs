@@ -5,7 +5,27 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+
+	"github.com/thesimpledev/skvs/internal/protocol"
 )
+
+type testApp struct{}
+
+func (app *testApp) set(_ string, _ []byte, _, _ bool) []byte {
+	return []byte("set")
+}
+
+func (app *testApp) get(_ string) []byte {
+	return []byte("get")
+}
+
+func (app *testApp) del(_ string) []byte {
+	return []byte("del")
+}
+
+func (app *testApp) exists(_ string) []byte {
+	return []byte("exists")
+}
 
 func newTestApp() *App {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -16,6 +36,71 @@ func newTestApp() *App {
 	}
 
 	return app
+}
+
+func TestCommandrouting(t *testing.T) {
+	tests := []struct {
+		name  string
+		frame *frameDTO
+		want  []byte
+		err   bool
+	}{
+		{
+			name: "set command",
+			frame: &frameDTO{
+				cmd: protocol.CMD_SET,
+			},
+			want: []byte("set"),
+			err:  false,
+		},
+		{
+			name: "get command",
+			frame: &frameDTO{
+				cmd: protocol.CMD_GET,
+			},
+			want: []byte("get"),
+			err:  false,
+		},
+		{
+			name: "del command",
+			frame: &frameDTO{
+				cmd: protocol.CMD_DELETE,
+			},
+			want: []byte("del"),
+			err:  false,
+		},
+		{
+			name: "exists command",
+			frame: &frameDTO{
+				cmd: protocol.CMD_EXISTS,
+			},
+			want: []byte("exists"),
+			err:  false,
+		},
+		{
+			name: "unknown command",
+			frame: &frameDTO{
+				cmd: ';',
+			},
+			want: []byte(""),
+			err:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := &testApp{}
+
+			got, err := commandRouting(app, tt.frame)
+			if err != nil && !tt.err {
+				t.Errorf("wanted no error, got %v", err.Error())
+			}
+
+			if !bytes.Equal(tt.want, got) {
+				t.Errorf("want: %v, got: %v", string(tt.want), string(got))
+			}
+		})
+	}
 }
 
 func TestSet(t *testing.T) {

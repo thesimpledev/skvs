@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/thesimpledev/skvs/internal/protocol"
+	"github.com/thesimpledev/skvs/internal/skvs"
 )
 
 func (s *server) serverListen(ctx context.Context) {
@@ -73,7 +74,7 @@ func (s *server) handlePacket(clientAddr *net.UDPAddr, data []byte) {
 		return
 	}
 
-	response, err := s.app.ProcessMessage(payload)
+	response, err := skvs.ProcessMessage(s.app, payload)
 	if err != nil {
 		s.log.Error("failed to process message", "err", err)
 		s.sendMessage([]byte("ERROR: failed to process message"), s.conn, clientAddr)
