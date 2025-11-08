@@ -7,7 +7,15 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-func (app *App) ProcessMessage(frame []byte) ([]byte, error) {
+type frameDTO struct {
+	cmd       byte
+	key       string
+	value     []byte
+	overwrite bool
+	old       bool
+}
+
+func frameToDTO(frame []byte) (*frameDTO, error) {
 	if len(frame) != protocol.FrameSize {
 		return nil, fmt.Errorf("invalid frame size %d", len(frame))
 	}
@@ -29,16 +37,21 @@ func (app *App) ProcessMessage(frame []byte) ([]byte, error) {
 	key := string(bytes.TrimRight(keyBytes, "\x00"))
 	value := bytes.TrimRight(valBytes, "\x00")
 
-	switch cmd {
-	case protocol.CMD_SET:
-		return app.set(key, value, overwrite, old), nil
-	case protocol.CMD_GET:
-		return app.get(key), nil
-	case protocol.CMD_DELETE:
-		return app.del(key), nil
-	case protocol.CMD_EXISTS:
-		return app.exists(key), nil
-	default:
-		return nil, fmt.Errorf("unknown command: %d", cmd)
+	frameDTO := &frameDTO{
+		cmd:       cmd,
+		key:       key,
+		value:     value,
+		overwrite: overwrite,
+		old:       old,
 	}
+
+	return frameDTO, nil
+}
+
+func (app *App) ProcessMessage(frame []byte) ([]byte, error) {
+	frameDTO, err := frameToDTO(frame)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse frame: %v", err)
+	}
+	return app.commandRouting(frameDTO)
 }

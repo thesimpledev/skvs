@@ -7,16 +7,6 @@ import (
 	"testing"
 )
 
-type te struct{}
-
-func (e *te) Encrypt(input []byte) ([]byte, error) {
-	return input, nil
-}
-
-func (e *te) Decrypt(input []byte) ([]byte, error) {
-	return input, nil
-}
-
 func newTestApp() *App {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 

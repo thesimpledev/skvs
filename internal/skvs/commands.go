@@ -1,6 +1,26 @@
 package skvs
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+
+	"github.com/thesimpledev/skvs/internal/protocol"
+)
+
+func (app *App) commandRouting(frame *frameDTO) ([]byte, error) {
+	switch frame.cmd {
+	case protocol.CMD_SET:
+		return app.set(frame.key, frame.value, frame.overwrite, frame.old), nil
+	case protocol.CMD_GET:
+		return app.get(frame.key), nil
+	case protocol.CMD_DELETE:
+		return app.del(frame.key), nil
+	case protocol.CMD_EXISTS:
+		return app.exists(frame.key), nil
+	default:
+		return nil, fmt.Errorf("unknown command: %d", frame.cmd)
+	}
+}
 
 func (app *App) set(key string, value []byte, overwrite, old bool) []byte {
 	var returnValue []byte
