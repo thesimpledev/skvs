@@ -77,7 +77,7 @@ func TestEncryptionDecryption(t *testing.T) {
 	}
 }
 
-func TestEncryptionDecryptionWrongLength(t *testing.T) {
+func TestEncryptInvalidFrameSize(t *testing.T) {
 	encryptor, err := New([]byte("asdfhjshajshehdhdkfhehdhsakjhhki"))
 	expected := []byte("Hello world this is really secret")
 	if err != nil {

@@ -16,10 +16,6 @@ func TestNew(t *testing.T) {
 	if app == nil {
 		t.Fatal("App is nill and should not be")
 	}
-
-	if app.skvs == nil {
-		t.Error("skvs is nil and should not be ")
-	}
 }
 
 func TestProcessMessage(t *testing.T) {

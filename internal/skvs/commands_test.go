@@ -197,9 +197,9 @@ func TestSet(t *testing.T) {
 			if string(got) != string(tt.wantReturn) {
 				t.Errorf("set() = %v, want %v", string(got), string(tt.wantReturn))
 			}
-
-			if string(app.skvs[tt.key]) != string(tt.wantMap) {
-				t.Errorf("sksv = %v, want %v", string(app.skvs[tt.key]), string(tt.wantMap))
+			gotMap := app.get(tt.key)
+			if string(gotMap) != string(tt.wantMap) {
+				t.Errorf("get() = %v, want %v", string(gotMap), string(tt.wantMap))
 			}
 		})
 	}
@@ -232,8 +232,9 @@ func TestDel(t *testing.T) {
 		t.Errorf("delete return - want %v, got %v", want, got)
 	}
 
-	if !bytes.Equal(app.skvs["cat"], nil) {
-		t.Errorf("delete map after - want nil, got %v", got)
+	gotAfterDel := app.get("cat")
+	if !bytes.Equal(gotAfterDel, nil) {
+		t.Errorf("get after delete - want nil, got %v", gotAfterDel)
 	}
 }
 
