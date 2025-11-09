@@ -1,5 +1,6 @@
 # Simple Key Value Store
-read
+[Blog Post Regarding Architecture Decisions](https://www.thesimpledev.com/blog/software.go/simple-key-value-server/)
+
 The Simple Key Value Store is a tiny UDP key–value server for a personal project where I needed something lighter than Valkey or Redis.. It’s intentionally minimal, fast, and easy to reason about.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/thesimpledev/skvs)](https://goreportcard.com/report/github.com/thesimpledev/skvs)
