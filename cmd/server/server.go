@@ -72,21 +72,18 @@ func (s *server) handlePacket(clientAddr *net.UDPAddr, data []byte) {
 	payload, err := s.encryptor.Decrypt(data)
 	if err != nil {
 		s.log.Error("Decrypt failed", "Err", err)
-		s.sendMessage([]byte("ERROR: failed to process message"), s.conn, clientAddr)
 		return
 	}
 
 	response, err := skvs.ProcessMessage(s.app, payload)
 	if err != nil {
 		s.log.Error("failed to process message", "err", err)
-		s.sendMessage([]byte("ERROR: failed to process message"), s.conn, clientAddr)
 		return
 	}
 
 	encryptedResponse, err := s.encryptor.Encrypt(response)
 	if err != nil {
 		s.log.Error("Encryption failed", "Err", err)
-		s.sendMessage([]byte("ERROR: failed to process message"), s.conn, clientAddr)
 		return
 	}
 

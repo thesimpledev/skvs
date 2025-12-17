@@ -14,8 +14,8 @@ type clientLibrary struct {
 	client *client.Client
 }
 
-func New(addr string) (*clientLibrary, error) {
-	c, err := client.New(addr, nil)
+func New(addr string, key []byte) (*clientLibrary, error) {
+	c, err := client.New(addr, key)
 	if err != nil {
 		return nil, fmt.Errorf("create client: %w", err)
 	}

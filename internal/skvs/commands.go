@@ -2,27 +2,26 @@ package skvs
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-func commandRouting(app SKVS, frame protocol.FrameDTO) ([]byte, error) {
+func commandRouting(app SKVS, frame protocol.FrameDTO) protocol.ResponseDTO {
 	switch frame.Cmd {
 	case protocol.CMD_SET:
-		return app.set(frame.Key, frame.Value, frame.Overwrite, frame.Old), nil
+		return app.set(frame.Key, frame.Value, frame.Overwrite, frame.Old)
 	case protocol.CMD_GET:
-		return app.get(frame.Key), nil
+		return app.get(frame.Key)
 	case protocol.CMD_DELETE:
-		return app.del(frame.Key), nil
+		return app.del(frame.Key)
 	case protocol.CMD_EXISTS:
-		return app.exists(frame.Key), nil
+		return app.exists(frame.Key)
 	default:
-		return nil, fmt.Errorf("unknown command: %d", frame.Cmd)
+		return protocol.NewResponseDTO(protocol.STATUS_ERROR, []byte("unknown command"))
 	}
 }
 
-func (app *App) set(key string, value []byte, overwrite, old bool) []byte {
+func (app *App) set(key string, value []byte, overwrite, old bool) protocol.ResponseDTO {
 	var returnValue []byte
 	var exists bool
 	app.mu.Lock()
@@ -37,29 +36,35 @@ func (app *App) set(key string, value []byte, overwrite, old bool) []byte {
 	if returnValue == nil {
 		returnValue = []byte("")
 	}
-	return bytes.Clone(returnValue)
+	return protocol.NewResponseDTO(protocol.STATUS_OK, bytes.Clone(returnValue))
 }
 
-func (app *App) get(key string) []byte {
+func (app *App) get(key string) protocol.ResponseDTO {
 	app.mu.RLock()
 	defer app.mu.RUnlock()
-	return bytes.Clone(app.skvs[key])
+	value, exists := app.skvs[key]
+	if !exists {
+		return protocol.NewResponseDTO(protocol.STATUS_NOT_FOUND, nil)
+	}
+	return protocol.NewResponseDTO(protocol.STATUS_OK, bytes.Clone(value))
 }
 
-func (app *App) del(key string) []byte {
+func (app *App) del(key string) protocol.ResponseDTO {
 	app.mu.Lock()
 	defer app.mu.Unlock()
-	returnValue := app.skvs[key]
+	value, exists := app.skvs[key]
 	delete(app.skvs, key)
-	return bytes.Clone(returnValue)
+	if !exists {
+		return protocol.NewResponseDTO(protocol.STATUS_NOT_FOUND, nil)
+	}
+	return protocol.NewResponseDTO(protocol.STATUS_OK, bytes.Clone(value))
 }
 
-func (app *App) exists(key string) []byte {
+func (app *App) exists(key string) protocol.ResponseDTO {
 	app.mu.RLock()
 	defer app.mu.RUnlock()
 	if _, exists := app.skvs[key]; exists {
-		return []byte("1")
+		return protocol.NewResponseDTO(protocol.STATUS_OK, []byte("1"))
 	}
-
-	return []byte("0")
+	return protocol.NewResponseDTO(protocol.STATUS_OK, []byte("0"))
 }

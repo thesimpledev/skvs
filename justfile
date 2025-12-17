@@ -23,3 +23,10 @@ test-mem:
 
 test-open:
 	open test/coverage.html
+
+install-tools:
+    go install honnef.co/go/tools/cmd/staticcheck@latest
+    go install github.com/kisielk/errcheck@latest
+    go install github.com/mgechev/revive@latest
+    go install github.com/securego/gosec/v2/cmd/gosec@latest
+    go install golang.org/x/vuln/cmd/govulncheck@latest

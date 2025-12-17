@@ -13,15 +13,21 @@ const (
 	CMD_DELETE = 2
 	CMD_EXISTS = 3
 
+	STATUS_OK        = 0
+	STATUS_NOT_FOUND = 1
+	STATUS_ERROR     = 2
+
 	FLAG_OVERWRITE uint32 = 1 << 0
 	FLAG_OLD       uint32 = 1 << 1
 
 	CommandSize        = 1
 	FlagSize           = 4
+	StatusSize         = 1
 	FrameSize          = 996
 	EncryptedFrameSize = 1024
 	KeySize            = 128
 	ValueSize          = 863
+	ResponseValueSize  = FrameSize - StatusSize
 	Port               = 4040
 	Timeout            = 5 * time.Second
 )
@@ -134,4 +140,37 @@ func DtoToFrame(dto FrameDTO) []byte {
 	copy(frame[5+KeySize:], []byte(dto.Value))
 
 	return frame
+}
+
+type ResponseDTO struct {
+	Status byte
+	Value  []byte
+}
+
+func NewResponseDTO(status byte, value []byte) ResponseDTO {
+	return ResponseDTO{
+		Status: status,
+		Value:  value,
+	}
+}
+
+func ResponseDTOToFrame(dto ResponseDTO) []byte {
+	frame := make([]byte, FrameSize)
+	frame[0] = dto.Status
+	copy(frame[StatusSize:], dto.Value)
+	return frame
+}
+
+func FrameToResponseDTO(frame []byte) (ResponseDTO, error) {
+	if len(frame) != FrameSize {
+		return ResponseDTO{}, fmt.Errorf("invalid response frame size %d", len(frame))
+	}
+
+	status := frame[0]
+	value := bytes.TrimRight(frame[StatusSize:], "\x00")
+
+	return ResponseDTO{
+		Status: status,
+		Value:  value,
+	}, nil
 }

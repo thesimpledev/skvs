@@ -11,20 +11,20 @@ import (
 
 type testApp struct{}
 
-func (app *testApp) set(_ string, _ []byte, _, _ bool) []byte {
-	return []byte("set")
+func (app *testApp) set(_ string, _ []byte, _, _ bool) protocol.ResponseDTO {
+	return protocol.NewResponseDTO(protocol.STATUS_OK, []byte("set"))
 }
 
-func (app *testApp) get(_ string) []byte {
-	return []byte("get")
+func (app *testApp) get(_ string) protocol.ResponseDTO {
+	return protocol.NewResponseDTO(protocol.STATUS_OK, []byte("get"))
 }
 
-func (app *testApp) del(_ string) []byte {
-	return []byte("del")
+func (app *testApp) del(_ string) protocol.ResponseDTO {
+	return protocol.NewResponseDTO(protocol.STATUS_OK, []byte("del"))
 }
 
-func (app *testApp) exists(_ string) []byte {
-	return []byte("exists")
+func (app *testApp) exists(_ string) protocol.ResponseDTO {
+	return protocol.NewResponseDTO(protocol.STATUS_OK, []byte("exists"))
 }
 
 func newTestApp() *App {
@@ -40,50 +40,50 @@ func newTestApp() *App {
 
 func TestCommandrouting(t *testing.T) {
 	tests := []struct {
-		name  string
-		frame protocol.FrameDTO
-		want  []byte
-		err   bool
+		name       string
+		frame      protocol.FrameDTO
+		wantValue  []byte
+		wantStatus byte
 	}{
 		{
 			name: "set command",
 			frame: protocol.FrameDTO{
 				Cmd: protocol.CMD_SET,
 			},
-			want: []byte("set"),
-			err:  false,
+			wantValue:  []byte("set"),
+			wantStatus: protocol.STATUS_OK,
 		},
 		{
 			name: "get command",
 			frame: protocol.FrameDTO{
 				Cmd: protocol.CMD_GET,
 			},
-			want: []byte("get"),
-			err:  false,
+			wantValue:  []byte("get"),
+			wantStatus: protocol.STATUS_OK,
 		},
 		{
 			name: "del command",
 			frame: protocol.FrameDTO{
 				Cmd: protocol.CMD_DELETE,
 			},
-			want: []byte("del"),
-			err:  false,
+			wantValue:  []byte("del"),
+			wantStatus: protocol.STATUS_OK,
 		},
 		{
 			name: "exists command",
 			frame: protocol.FrameDTO{
 				Cmd: protocol.CMD_EXISTS,
 			},
-			want: []byte("exists"),
-			err:  false,
+			wantValue:  []byte("exists"),
+			wantStatus: protocol.STATUS_OK,
 		},
 		{
 			name: "unknown command",
 			frame: protocol.FrameDTO{
 				Cmd: ';',
 			},
-			want: []byte(""),
-			err:  true,
+			wantValue:  []byte("unknown command"),
+			wantStatus: protocol.STATUS_ERROR,
 		},
 	}
 
@@ -91,13 +91,14 @@ func TestCommandrouting(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			app := &testApp{}
 
-			got, err := commandRouting(app, tt.frame)
-			if err != nil && !tt.err {
-				t.Errorf("wanted no error, got %v", err.Error())
+			got := commandRouting(app, tt.frame)
+
+			if got.Status != tt.wantStatus {
+				t.Errorf("status: want %v, got %v", tt.wantStatus, got.Status)
 			}
 
-			if !bytes.Equal(tt.want, got) {
-				t.Errorf("want: %v, got: %v", string(tt.want), string(got))
+			if !bytes.Equal(tt.wantValue, got.Value) {
+				t.Errorf("value: want %v, got %v", string(tt.wantValue), string(got.Value))
 			}
 		})
 	}
@@ -194,12 +195,12 @@ func TestSet(t *testing.T) {
 			}
 			got := app.set(tt.key, tt.value, tt.overwrite, tt.old)
 
-			if string(got) != string(tt.wantReturn) {
-				t.Errorf("set() = %v, want %v", string(got), string(tt.wantReturn))
+			if string(got.Value) != string(tt.wantReturn) {
+				t.Errorf("set() = %v, want %v", string(got.Value), string(tt.wantReturn))
 			}
 			gotMap := app.get(tt.key)
-			if string(gotMap) != string(tt.wantMap) {
-				t.Errorf("get() = %v, want %v", string(gotMap), string(tt.wantMap))
+			if string(gotMap.Value) != string(tt.wantMap) {
+				t.Errorf("get() = %v, want %v", string(gotMap.Value), string(tt.wantMap))
 			}
 		})
 	}
@@ -214,8 +215,8 @@ func TestGet(t *testing.T) {
 
 	got := app.get("cat")
 
-	if !bytes.Equal(got, want) {
-		t.Errorf("expected %v, got %v", want, got)
+	if !bytes.Equal(got.Value, want) {
+		t.Errorf("expected %v, got %v", want, got.Value)
 	}
 }
 
@@ -228,13 +229,13 @@ func TestDel(t *testing.T) {
 
 	got := app.del("cat")
 
-	if !bytes.Equal(want, got) {
-		t.Errorf("delete return - want %v, got %v", want, got)
+	if !bytes.Equal(want, got.Value) {
+		t.Errorf("delete return - want %v, got %v", want, got.Value)
 	}
 
 	gotAfterDel := app.get("cat")
-	if !bytes.Equal(gotAfterDel, nil) {
-		t.Errorf("get after delete - want nil, got %v", gotAfterDel)
+	if gotAfterDel.Status != protocol.STATUS_NOT_FOUND {
+		t.Errorf("get after delete - want STATUS_NOT_FOUND, got status %v", gotAfterDel.Status)
 	}
 }
 
@@ -268,8 +269,8 @@ func TestExists(t *testing.T) {
 
 			got := app.exists(tt.key)
 
-			if !bytes.Equal(tt.want, got) {
-				t.Errorf("want %v, got %v", tt.want, got)
+			if !bytes.Equal(tt.want, got.Value) {
+				t.Errorf("want %v, got %v", tt.want, got.Value)
 			}
 		})
 	}

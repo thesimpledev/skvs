@@ -10,10 +10,10 @@ import (
 )
 
 type SKVS interface {
-	set(key string, value []byte, overwrite, old bool) []byte
-	get(key string) []byte
-	del(key string) []byte
-	exists(key string) []byte
+	set(key string, value []byte, overwrite, old bool) protocol.ResponseDTO
+	get(key string) protocol.ResponseDTO
+	del(key string) protocol.ResponseDTO
+	exists(key string) protocol.ResponseDTO
 }
 
 type App struct {
@@ -34,5 +34,6 @@ func ProcessMessage(app *App, frame []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse frame: %v", err)
 	}
-	return commandRouting(app, frameDTO)
+	responseDTO := commandRouting(app, frameDTO)
+	return protocol.ResponseDTOToFrame(responseDTO), nil
 }

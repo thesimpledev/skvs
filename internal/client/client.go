@@ -95,7 +95,17 @@ func (c *Client) Send(ctx context.Context, dto protocol.FrameDTO) (string, error
 			continue
 		}
 
-		return string(decrypted), nil
+		responseDTO, err := protocol.FrameToResponseDTO(decrypted)
+		if err != nil {
+			lastError = fmt.Errorf("parse response failed: %w", err)
+			continue
+		}
+
+		if responseDTO.Status == protocol.STATUS_ERROR {
+			return "", fmt.Errorf("server error: %s", string(responseDTO.Value))
+		}
+
+		return string(responseDTO.Value), nil
 	}
 
 	return "", fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastError)
