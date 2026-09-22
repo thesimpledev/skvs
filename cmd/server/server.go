@@ -21,6 +21,7 @@ func (s *server) serverListen(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			s.handlers.Wait()
 			return
 		default:
 			data, clientAddr, ok := s.readPacket(&bufPool)
@@ -60,7 +61,9 @@ func (s *server) readPacket(bufPool *sync.Pool) ([]byte, *net.UDPAddr, bool) {
 func (s *server) dispatch(clientAddr *net.UDPAddr, data []byte) {
 	select {
 	case s.semaphore <- struct{}{}:
+		s.handlers.Add(1)
 		go func() {
+			defer s.handlers.Done()
 			defer func() { <-s.semaphore }()
 			s.handlePacket(clientAddr, data)
 		}()

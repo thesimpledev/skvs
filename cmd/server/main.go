@@ -6,6 +6,9 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/thesimpledev/skvs/internal/encryption"
@@ -25,11 +28,12 @@ type server struct {
 	port        string
 	app         *skvs.App
 	semaphore   chan struct{}
+	handlers    sync.WaitGroup
 	readTimeout time.Duration
 }
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 

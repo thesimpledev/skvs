@@ -25,7 +25,7 @@ type stubServer struct {
 	done      chan struct{}
 }
 
-func startStub(t *testing.T, handler stubHandler) *stubServer {
+func startStub(t testing.TB, handler stubHandler) *stubServer {
 	t.Helper()
 
 	e, err := encryption.New(testKey)
@@ -97,7 +97,7 @@ func (s *stubServer) respond(data []byte, from *net.UDPAddr) {
 	}
 }
 
-func newTestClient(t *testing.T, addr string) *Client {
+func newTestClient(t testing.TB, addr string) *Client {
 	t.Helper()
 
 	c, err := New(addr, testKey)
@@ -107,7 +107,7 @@ func newTestClient(t *testing.T, addr string) *Client {
 	return c
 }
 
-func getFrame(t *testing.T) protocol.FrameDTO {
+func getFrame(t testing.TB) protocol.FrameDTO {
 	t.Helper()
 
 	dto, err := protocol.NewFrameDTO("get", "key", "", false, false)
@@ -220,6 +220,21 @@ func TestSendTimesOutWithoutResponse(t *testing.T) {
 	_, err := c.Send(ctx, getFrame(t))
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("Send() error = %v, want %v", err, context.DeadlineExceeded)
+	}
+}
+
+func BenchmarkSendRoundTrip(b *testing.B) {
+	stub := startStub(b, alwaysReply(protocol.NewResponseDTO(protocol.STATUS_OK, []byte("value"))))
+	c := newTestClient(b, stub.addr())
+	frame := getFrame(b)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+
+	for b.Loop() {
+		if _, err := c.Send(ctx, frame); err != nil {
+			b.Fatalf("Send() error = %v", err)
+		}
 	}
 }
 
