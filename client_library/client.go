@@ -1,5 +1,5 @@
-// Package skvs provides a client library for the skvs server.
-package skvs
+// Package clientlibrary provides a client library for the skvs server.
+package clientlibrary
 
 import (
 	"context"

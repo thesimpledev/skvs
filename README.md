@@ -48,13 +48,13 @@ import (
     "os"
     "time"
 
-    "github.com/thesimpledev/skvs"
+    "github.com/thesimpledev/skvs/client_library"
 )
 
 func main() {
     key := []byte(os.Getenv("SKVS_ENCRYPTION_KEY"))
 
-    c, err := skvs.New("localhost:4040", key)
+    c, err := clientlibrary.New("localhost:4040", key)
     if err != nil {
         panic(err)
     }

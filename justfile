@@ -1,6 +1,6 @@
 set shell := ["bash", "-cu"]
 
-PKGS := `go list -f '{{.Dir}}' ./cmd/... ./internal/... | grep -v /vendor/ | tr '\n' ' '`
+PKGS := `go list -f '{{.Dir}}' ./client_library/... ./cmd/... ./internal/... | grep -v /vendor/ | tr '\n' ' '`
 
 test:
 	rm -f test/*
