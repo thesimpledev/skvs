@@ -3,7 +3,6 @@ package skvs
 
 import (
 	"fmt"
-	"log/slog"
 	"sync"
 
 	"github.com/thesimpledev/skvs/internal/protocol"
@@ -17,14 +16,12 @@ type SKVS interface {
 }
 
 type App struct {
-	log  *slog.Logger
 	skvs map[string][]byte
 	mu   sync.RWMutex
 }
 
-func New(log *slog.Logger) *App {
+func New() *App {
 	return &App{
-		log:  log,
 		skvs: make(map[string][]byte, 0),
 	}
 }

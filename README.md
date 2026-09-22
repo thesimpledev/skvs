@@ -1,7 +1,7 @@
 # Simple Key Value Store
 [Blog Post Regarding Architecture Decisions](https://www.thesimpledev.com/blog/software.go/simple-key-value-server/)
 
-The Simple Key Value Store is a tiny UDP key–value server for a personal project where I needed something lighter than Valkey or Redis.. It’s intentionally minimal, fast, and easy to reason about.
+The Simple Key Value Store is a tiny UDP key-value server for a personal project where I needed something lighter than Valkey or Redis. It’s intentionally minimal, fast, and easy to reason about.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/thesimpledev/skvs)](https://goreportcard.com/report/github.com/thesimpledev/skvs)
 [![License](https://img.shields.io/github/license/thesimpledev/skvs)](https://github.com/thesimpledev/skvs/blob/master/LICENSE)
@@ -15,21 +15,21 @@ The Simple Key Value Store is a tiny UDP key–value server for a personal proje
 
 - Transport: UDP (one datagram per request/response)
 - Payload: compact fixed-size binary protocol
-- Concurrency: per-request goroutine; in-memory map guarded by sync.RWMutex
+- Concurrency: per-request goroutine; in-memory map guarded by sync.RWMutex. In-flight requests are capped at 1000; datagrams that arrive at capacity are dropped without a reply.
 - Persistence: none (in-memory only)
-- Security: all payloads are AES-256-GCM encrypted (client-side encryption, server-side decryption).
+- Security: all payloads in both directions are AES-256-GCM encrypted with a shared key.
 
 ### Commands
 
-- `set <key> <value>` – store a value and returns the set value
-- `get <key>` – retrieve a value - always returns a value even if it is empty
-- `delete <key>` – remove a key - returns removed key
-- `exists <key>` – check if a key exists - currently returns a string true/false
+- `set <key> <value>`: store a value and return the value now stored at the key. If the key exists and `--overwrite` is not set, the existing value is returned unchanged.
+- `get <key>`: retrieve a value. Always returns a value, even if it is empty.
+- `delete <key>`: remove a key. Returns the removed value.
+- `exists <key>`: check if a key exists. Returns "1" if it exists, "0" if not.
 
 ### Flags
 
 - `--overwrite` allows existing key to be overwritten on set
-- `--old` returns the previous key independent of any other flags
+- `--old` returns the previous value independent of any other flags
 
 ---
 
@@ -103,7 +103,7 @@ Then in another terminal run the CLI:
 
 ### Notes
 
-- Flags (`--overwrite`, `--old`) must be provided **before** the command due to Gos stdlib `flag` package parsing rules.
+- Flags (`--overwrite`, `--old`) must be provided **before** the command due to Go's stdlib `flag` package parsing rules.
 - The CLI always applies the default timeout (`protocol.Timeout`) for requests.
 
 
@@ -111,7 +111,7 @@ Then in another terminal run the CLI:
 
 ## Configuration
 
-The server and client are configured via environment variables:
+The server and the CLI are configured via environment variables. The library takes the address and key as arguments to `New`.
 
 | Variable            | Description                                        | Notes                          |
 | ------------------- | -------------------------------------------------- | ------------------------------ |
@@ -122,7 +122,7 @@ The server and client are configured via environment variables:
 
 ## Binary Protocol
 
-Each message is a fixed-size 1024-byte frame.
+Each message is a fixed-size 996-byte plaintext frame.
 The entire frame is encrypted before transport. On the wire, the ciphertext size is 996 + nonce (12) + tag (16) = 1024 bytes.
 
 ### Layout
@@ -131,9 +131,17 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 | ------ | ------ | ------- | --------------------------------------------------- |
 | 0      | 1 B    | Command | 0=SET, 1=GET, 2=DELETE, 3=EXISTS (up to 256 total). |
 | 1      | 4 B    | Flags   | 32-bit bitmask; each bit is an independent toggle.  |
-| 5      | 128 B  | Key     | UTF-8 string, null-padded if shorter.               |
-| 133    | 863 B  | Value   | UTF-8 string, null-padded if shorter.               |
+| 5      | 128 B  | Key     | UTF-8 string, null-padded if shorter. Cannot contain NUL bytes. |
+| 133    | 863 B  | Value   | UTF-8 string, null-padded if shorter. Cannot contain NUL bytes. |
 | Total  | 996 B | Frame   | Fixed size plaintext, encrypted as a whole.         |
+
+### Response Frame
+
+| Offset | Size   | Field   | Notes                                               |
+| ------ | ------ | ------- | --------------------------------------------------- |
+| 0      | 1 B    | Status  | 0=OK, 1=NOT_FOUND, 2=ERROR.                         |
+| 1      | 995 B  | Value   | UTF-8 string, null-padded if shorter.               |
+| Total  | 996 B  | Frame   | Fixed size plaintext, encrypted as a whole.         |
 
 ---
 
@@ -144,8 +152,8 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 | 0     | SET     | Store a value at a key, respecting flags.       |
 | 1     | GET     | Retrieve the value at a key (empty if missing). |
 | 2     | DELETE  | Remove the key, returning the old value.        |
-| 3     | EXISTS  | Return "true" if key exists, "false" if not.    |
-| 4–255 | —       | Reserved for future use.                        |
+| 3     | EXISTS  | Return "1" if key exists, "0" if not.           |
+| 4 to 255 | Reserved | Reserved for future use.                    |
 
 ---
 
@@ -155,18 +163,18 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 | ---- | --------- | ------------------------------------------ |
 | 0    | Overwrite | Allow overwriting existing values.         |
 | 1    | Old       | Return the previous value (even if empty). |
-| 2–31 | Reserved  | Full 32-bit space allows future expansion. |
+| 2 to 31 | Reserved | Full 32-bit space allows future expansion. |
 
 ---
 
 ## Operational Notes
 
 - One UDP datagram = one operation.
-- Plaintext frames are always 1024 bytes; ciphertext datagrams are 1057 bytes.
-- Server responses are short binary or string payloads. Errors are returned as generic "ERROR: failed to process message".
+- Plaintext frames are always 996 bytes; ciphertext datagrams are 1024 bytes.
+- Server responses are short binary or string payloads. A datagram that cannot be decrypted gets no reply and the client's request times out. A frame that decrypts but cannot be processed gets a `STATUS_ERROR` response with a short message.
 - Reads scale via RLock for GET/EXISTS; writes (SET/DELETE) take a short exclusive Lock.
-- Data is volatile — lost on restart.
-- No authentication/authorization — security is enforced by encryption only.
+- Data is volatile: it is lost on restart.
+- No authentication or authorization: security is enforced by encryption only.
 
 ---
 
@@ -175,11 +183,3 @@ The entire frame is encrypted before transport. On the wire, the ciphertext size
 - Persistence, replication, clustering, TTLs, eviction policies.
 - Complex data structures or scripting.
 - Streaming or multi-message pipelines.
-
----
-
-## Todo
-
-
-
-```

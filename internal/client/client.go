@@ -44,8 +44,15 @@ func (c *Client) roundTrip(encrypted []byte, writeDeadline, readDeadline time.Ti
 	}
 	defer func() { _ = conn.Close() }()
 
-	_ = conn.SetWriteDeadline(writeDeadline)
-	_ = conn.SetReadDeadline(readDeadline)
+	err = conn.SetWriteDeadline(writeDeadline)
+	if err != nil {
+		return nil, fmt.Errorf("set write deadline: %w", err)
+	}
+
+	err = conn.SetReadDeadline(readDeadline)
+	if err != nil {
+		return nil, fmt.Errorf("set read deadline: %w", err)
+	}
 
 	_, err = conn.Write(encrypted)
 	if err != nil {
@@ -80,35 +87,15 @@ func (c *Client) Send(ctx context.Context, dto protocol.FrameDTO) (string, error
 		if ctx.Err() != nil {
 			return "", ctx.Err()
 		}
-		if attempt > 0 {
-			delay := min(baseDelay*(1<<(attempt-1)), time.Second)
-			select {
-			case <-time.After(delay):
-			case <-ctx.Done():
-				return "", ctx.Err()
-			}
+
+		backoffErr := c.backoff(ctx, attempt)
+		if backoffErr != nil {
+			return "", backoffErr
 		}
 
-		readDeadline := time.Now().Add(min(baseDelay*(1<<attempt), time.Second))
-		if readDeadline.After(deadline) {
-			readDeadline = deadline
-		}
-
-		response, err := c.roundTrip(encrypted, deadline, readDeadline)
-		if err != nil {
-			lastError = err
-			continue
-		}
-
-		decrypted, err := c.encryptor.Decrypt(response)
-		if err != nil {
-			lastError = fmt.Errorf("decryption failed: %w", err)
-			continue
-		}
-
-		responseDTO, err := protocol.FrameToResponseDTO(decrypted)
-		if err != nil {
-			lastError = fmt.Errorf("parse response failed: %w", err)
+		responseDTO, attemptErr := c.attemptOnce(encrypted, deadline, attempt)
+		if attemptErr != nil {
+			lastError = attemptErr
 			continue
 		}
 
@@ -120,4 +107,42 @@ func (c *Client) Send(ctx context.Context, dto protocol.FrameDTO) (string, error
 	}
 
 	return "", fmt.Errorf("failed after %d attempts: %w", maxAttempts, lastError)
+}
+
+func (c *Client) backoff(ctx context.Context, attempt int) error {
+	if attempt == 0 {
+		return nil
+	}
+
+	delay := min(baseDelay*(1<<(attempt-1)), time.Second)
+	select {
+	case <-time.After(delay):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (c *Client) attemptOnce(encrypted []byte, deadline time.Time, attempt int) (protocol.ResponseDTO, error) {
+	readDeadline := time.Now().Add(min(baseDelay*(1<<attempt), time.Second))
+	if readDeadline.After(deadline) {
+		readDeadline = deadline
+	}
+
+	response, err := c.roundTrip(encrypted, deadline, readDeadline)
+	if err != nil {
+		return protocol.ResponseDTO{}, err
+	}
+
+	decrypted, err := c.encryptor.Decrypt(response)
+	if err != nil {
+		return protocol.ResponseDTO{}, fmt.Errorf("decryption failed: %w", err)
+	}
+
+	responseDTO, err := protocol.FrameToResponseDTO(decrypted)
+	if err != nil {
+		return protocol.ResponseDTO{}, fmt.Errorf("parse response failed: %w", err)
+	}
+
+	return responseDTO, nil
 }

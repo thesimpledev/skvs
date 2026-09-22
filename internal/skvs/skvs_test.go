@@ -1,20 +1,16 @@
 package skvs
 
 import (
-	"io"
-	"log/slog"
 	"testing"
 
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
 func TestNew(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-
-	app := New(logger)
+	app := New()
 
 	if app == nil {
-		t.Fatal("App is nill and should not be")
+		t.Fatal("App is nil and should not be")
 	}
 }
 

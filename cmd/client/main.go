@@ -10,7 +10,7 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
-const usage = "Usage: cli <set|get|delete|exists> <key> [value] [--overwrite] [--old]"
+const usage = "Usage: cli [--overwrite] [--old] <set|get|delete|exists> <key> [value]"
 
 func main() {
 	if err := run(); err != nil {

@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
 	"time"
 
 	"github.com/thesimpledev/skvs/internal/encryption"
+	"github.com/thesimpledev/skvs/internal/protocol"
 	"github.com/thesimpledev/skvs/internal/skvs"
 )
 
@@ -43,7 +45,10 @@ func main() {
 		readTimeout: 100 * time.Millisecond,
 	}
 	server.port = os.Getenv("PORT")
-	server.app = skvs.New(logger)
+	if server.port == "" {
+		server.port = fmt.Sprintf("%d", protocol.Port)
+	}
+	server.app = skvs.New()
 	server.semaphore = make(chan struct{}, 1000)
 
 	udpConn, err := server.startUDPServer()

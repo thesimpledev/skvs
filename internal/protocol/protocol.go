@@ -4,6 +4,7 @@ package protocol
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -69,6 +70,14 @@ func NewFrameDTO(cmdStr string, key, value string, overwrite, old bool) (FrameDT
 
 	if len(value) > ValueSize {
 		return FrameDTO{}, fmt.Errorf("value too long. size is %d and max size allowed is %d", len(value), ValueSize)
+	}
+
+	if strings.IndexByte(key, 0) >= 0 {
+		return FrameDTO{}, fmt.Errorf("key cannot contain NUL bytes")
+	}
+
+	if strings.IndexByte(value, 0) >= 0 {
+		return FrameDTO{}, fmt.Errorf("value cannot contain NUL bytes")
 	}
 
 	byteValue := []byte(value)
@@ -157,7 +166,7 @@ func NewResponseDTO(status byte, value []byte) ResponseDTO {
 func ResponseDTOToFrame(dto ResponseDTO) []byte {
 	frame := make([]byte, FrameSize)
 	frame[0] = dto.Status
-	copy(frame[StatusSize:], dto.Value)
+	copy(frame[StatusSize:StatusSize+ResponseValueSize], dto.Value)
 	return frame
 }
 

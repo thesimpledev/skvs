@@ -12,9 +12,7 @@ import (
 )
 
 type Encryptor struct {
-	key   []byte
-	block cipher.Block
-	gcm   cipher.AEAD
+	gcm cipher.AEAD
 }
 
 func New(key []byte) (*Encryptor, error) {
@@ -32,7 +30,7 @@ func New(key []byte) (*Encryptor, error) {
 		return nil, fmt.Errorf("encryption: new gcm: %v", err)
 	}
 
-	return &Encryptor{key: key, block: block, gcm: gcm}, nil
+	return &Encryptor{gcm: gcm}, nil
 }
 
 func (e *Encryptor) Encrypt(payload []byte) ([]byte, error) {

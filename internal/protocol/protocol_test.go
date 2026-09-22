@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"bytes"
 	"reflect"
 	"strings"
 	"testing"
@@ -49,7 +50,7 @@ func TestProtocol(t *testing.T) {
 			old:       true,
 		},
 		{
-			name:      "failed new set key to long",
+			name:      "failed new set key too long",
 			cmd:       "set",
 			key:       strings.Repeat("a", KeySize+1),
 			value:     "value",
@@ -58,7 +59,7 @@ func TestProtocol(t *testing.T) {
 			err:       true,
 		},
 		{
-			name:      "failed new set value to long",
+			name:      "failed new set value too long",
 			cmd:       "set",
 			key:       "key",
 			value:     strings.Repeat("a", ValueSize+1),
@@ -94,7 +95,7 @@ func TestProtocol(t *testing.T) {
 			err:  true,
 		},
 		{
-			name: "failed new get key emoty",
+			name: "failed new get key empty",
 			cmd:  "get",
 			err:  true,
 		},
@@ -113,13 +114,27 @@ func TestProtocol(t *testing.T) {
 			cmd:  "mycommand",
 			err:  true,
 		},
+		{
+			name:  "failed new set key with NUL byte",
+			cmd:   "set",
+			key:   "ke\x00y",
+			value: "value",
+			err:   true,
+		},
+		{
+			name:  "failed new set value with NUL byte",
+			cmd:   "set",
+			key:   "key",
+			value: "val\x00ue",
+			err:   true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dto, err := NewFrameDTO(tt.cmd, tt.key, tt.value, tt.overwrite, tt.old)
-			if err != nil && !tt.err {
-				t.Fatalf("failed to create new dto: %v", err)
+			if (err != nil) != tt.err {
+				t.Fatalf("NewFrameDTO() error = %v, wantErr %v", err, tt.err)
 			}
 
 			if tt.err {
@@ -146,5 +161,48 @@ func TestFrameToLarge(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("frame should return size error")
+	}
+}
+
+func TestResponseDTORoundTrip(t *testing.T) {
+	tests := []struct {
+		name   string
+		status byte
+		value  []byte
+	}{
+		{name: "ok with value", status: STATUS_OK, value: []byte("value")},
+		{name: "not found with nil value", status: STATUS_NOT_FOUND, value: nil},
+		{name: "error with message", status: STATUS_ERROR, value: []byte("unknown command")},
+		{name: "ok with full value", status: STATUS_OK, value: bytes.Repeat([]byte("a"), ResponseValueSize)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			frame := ResponseDTOToFrame(NewResponseDTO(tt.status, tt.value))
+			if len(frame) != FrameSize {
+				t.Fatalf("response frame size = %d, want %d", len(frame), FrameSize)
+			}
+
+			got, err := FrameToResponseDTO(frame)
+			if err != nil {
+				t.Fatalf("failed to create response dto from frame: %v", err)
+			}
+
+			if got.Status != tt.status {
+				t.Errorf("status = %d, want %d", got.Status, tt.status)
+			}
+
+			if !bytes.Equal(got.Value, tt.value) {
+				t.Errorf("value = %q, want %q", got.Value, tt.value)
+			}
+		})
+	}
+}
+
+func TestFrameToResponseDTOWrongSize(t *testing.T) {
+	_, err := FrameToResponseDTO(make([]byte, FrameSize+1))
+
+	if err == nil {
+		t.Errorf("response frame should return size error")
 	}
 }

@@ -2,8 +2,6 @@ package skvs
 
 import (
 	"bytes"
-	"io"
-	"log/slog"
 	"testing"
 
 	"github.com/thesimpledev/skvs/internal/protocol"
@@ -28,17 +26,14 @@ func (app *testApp) exists(_ string) protocol.ResponseDTO {
 }
 
 func newTestApp() *App {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-
 	app := &App{
-		log:  logger,
 		skvs: make(map[string][]byte),
 	}
 
 	return app
 }
 
-func TestCommandrouting(t *testing.T) {
+func TestCommandRouting(t *testing.T) {
 	tests := []struct {
 		name       string
 		frame      protocol.FrameDTO

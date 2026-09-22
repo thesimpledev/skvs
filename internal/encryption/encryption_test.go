@@ -34,8 +34,8 @@ func TestNew(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			encryptor, err := New(tt.key)
 
-			if err != nil && !tt.err {
-				t.Fatalf("error got error expected no error %v", err)
+			if (err != nil) != tt.err {
+				t.Fatalf("New() error = %v, wantErr %v", err, tt.err)
 			}
 
 			if tt.err {
@@ -91,10 +91,13 @@ func TestEncryptInvalidFrameSize(t *testing.T) {
 }
 
 func TestDecryptShortPayload(t *testing.T) {
-	encryptor, _ := New([]byte("asdfhjshajshehdhdkfhehdhsakjhhki"))
+	encryptor, err := New([]byte("asdfhjshajshehdhdkfhehdhsakjhhki"))
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
 
 	shortPayload := []byte("short")
-	_, err := encryptor.Decrypt(shortPayload)
+	_, err = encryptor.Decrypt(shortPayload)
 
 	if err == nil {
 		t.Error("expected error for short payload, got nil")
