@@ -18,7 +18,6 @@ const (
 
 type Client struct {
 	addr      *net.UDPAddr
-	conn      *net.UDPConn
 	encryptor *encryption.Encryptor
 }
 
@@ -28,21 +27,39 @@ func New(serverAddr string, encryptionKey []byte) (*Client, error) {
 		return nil, fmt.Errorf("resolve addr: %w", err)
 	}
 
-	conn, err := net.DialUDP("udp", nil, udpAddr)
-	if err != nil {
-		return nil, fmt.Errorf("dial udp: %w", err)
-	}
-
 	e, err := encryption.New(encryptionKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create encryptor: %w", err)
 	}
 
-	return &Client{addr: udpAddr, conn: conn, encryptor: e}, nil
+	return &Client{addr: udpAddr, encryptor: e}, nil
 }
 
-func (c *Client) Close() {
-	_ = c.conn.Close()
+func (c *Client) Close() {}
+
+func (c *Client) roundTrip(encrypted []byte, writeDeadline, readDeadline time.Time) ([]byte, error) {
+	conn, err := net.DialUDP("udp", nil, c.addr)
+	if err != nil {
+		return nil, fmt.Errorf("dial udp: %w", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	_ = conn.SetWriteDeadline(writeDeadline)
+	_ = conn.SetReadDeadline(readDeadline)
+
+	_, err = conn.Write(encrypted)
+	if err != nil {
+		return nil, fmt.Errorf("send frame: %w", err)
+	}
+
+	buf := make([]byte, protocol.EncryptedFrameSize)
+
+	n, err := conn.Read(buf)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	return buf[:n], nil
 }
 
 func (c *Client) Send(ctx context.Context, dto protocol.FrameDTO) (string, error) {
@@ -72,29 +89,18 @@ func (c *Client) Send(ctx context.Context, dto protocol.FrameDTO) (string, error
 			}
 		}
 
-		_ = c.conn.SetWriteDeadline(deadline)
-
 		readDeadline := time.Now().Add(min(baseDelay*(1<<attempt), time.Second))
 		if readDeadline.After(deadline) {
 			readDeadline = deadline
 		}
-		_ = c.conn.SetReadDeadline(readDeadline)
 
-		_, err = c.conn.Write(encrypted)
+		response, err := c.roundTrip(encrypted, deadline, readDeadline)
 		if err != nil {
-			lastError = fmt.Errorf("send frame: %w", err)
+			lastError = err
 			continue
 		}
 
-		buf := make([]byte, protocol.EncryptedFrameSize)
-
-		n, err := c.conn.Read(buf)
-		if err != nil {
-			lastError = fmt.Errorf("read response: %w", err)
-			continue
-		}
-
-		decrypted, err := c.encryptor.Decrypt(buf[:n])
+		decrypted, err := c.encryptor.Decrypt(response)
 		if err != nil {
 			lastError = fmt.Errorf("decryption failed: %w", err)
 			continue
