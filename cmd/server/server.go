@@ -1,5 +1,3 @@
-//go:build exclude_tests
-
 package main
 
 import (

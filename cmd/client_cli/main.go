@@ -1,5 +1,3 @@
-//go:build exclude_tests
-
 package main
 
 import (
@@ -35,7 +33,12 @@ func main() {
 		fmt.Printf("error creating data transfer object: %v\n", err)
 	}
 
-	c, err := client.New(fmt.Sprintf("localhost:%d", protocol.Port), nil)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = fmt.Sprintf("%d", protocol.Port)
+	}
+
+	c, err := client.New("localhost:"+port, []byte(os.Getenv("SKVS_ENCRYPTION_KEY")))
 	if err != nil {
 		fmt.Println("Error creating client:", err)
 		os.Exit(1)
