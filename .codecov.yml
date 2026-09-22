@@ -1,5 +1,4 @@
 coverage:
   ignore:
-    - "cmd/client_cli"
-    - "cmd/client_lib"
+    - "cmd/client"
     - "cmd/server"

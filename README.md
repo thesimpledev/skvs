@@ -44,12 +44,17 @@ If a deadline is not provided, the call will fail immediately.
 ```go
 import (
     "context"
+    "fmt"
+    "os"
     "time"
-    skvs "github.com/thesimpledev/skvs/cmd/client_lib"
+
+    "github.com/thesimpledev/skvs"
 )
 
 func main() {
-    c, err := skvs.New("localhost:4040")
+    key := []byte(os.Getenv("SKVS_ENCRYPTION_KEY"))
+
+    c, err := skvs.New("localhost:4040", key)
     if err != nil {
         panic(err)
     }
@@ -69,7 +74,7 @@ func main() {
     }
     fmt.Println("Value:", val)
 }
-
+```
 
 ## CLI Client Usage
 
@@ -83,18 +88,18 @@ Start the server in one terminal:
 
 Then in another terminal run the CLI:
 
-    go run ./cmd/client_cli  [--overwrite] [--old] <command> <key> [value]
+    go run ./cmd/client  [--overwrite] [--old] <command> <key> [value]
 
 
 
 ### Examples
 
-    go run ./cmd/client_cli set foo bar
-    go run ./cmd/client_cli get foo
-    go run ./cmd/client_cli --overwrite set foo baz
-    go run ./cmd/client_cli --overwrite --old set foo qux
-    go run ./cmd/client_cli delete foo
-    go run ./cmd/client_cli exists foo
+    go run ./cmd/client set foo bar
+    go run ./cmd/client get foo
+    go run ./cmd/client --overwrite set foo baz
+    go run ./cmd/client --overwrite --old set foo qux
+    go run ./cmd/client delete foo
+    go run ./cmd/client exists foo
 
 ### Notes
 
