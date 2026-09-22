@@ -10,15 +10,52 @@ import (
 	"github.com/thesimpledev/skvs/internal/protocol"
 )
 
+const usage = "Usage: cli <set|get|delete|exists> <key> [value] [--overwrite] [--old]"
+
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	dto, err := parseArgs()
+	if err != nil {
+		return err
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = fmt.Sprintf("%d", protocol.Port)
+	}
+
+	c, err := client.New("localhost:"+port, []byte(os.Getenv("SKVS_ENCRYPTION_KEY")))
+	if err != nil {
+		return fmt.Errorf("error creating client: %w", err)
+	}
+	defer c.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), protocol.Timeout)
+	defer cancel()
+
+	resp, err := c.Send(ctx, dto)
+	if err != nil {
+		return fmt.Errorf("error: %w", err)
+	}
+
+	fmt.Println("Response:", resp)
+	return nil
+}
+
+func parseArgs() (protocol.FrameDTO, error) {
 	overwrite := flag.Bool("overwrite", false, "Allow overwriting existing values")
 	old := flag.Bool("old", false, "Return the previous value if available")
 	flag.Parse()
 
 	args := flag.Args()
 	if len(args) < 2 {
-		fmt.Println("Usage: cli <set|get|delete|exists> <key> [value] [--overwrite] [--old]")
-		os.Exit(1)
+		return protocol.FrameDTO{}, fmt.Errorf("%s", usage)
 	}
 
 	commandStr := args[0]
@@ -30,29 +67,8 @@ func main() {
 
 	dto, err := protocol.NewFrameDTO(commandStr, key, value, *overwrite, *old)
 	if err != nil {
-		fmt.Printf("error creating data transfer object: %v\n", err)
+		return protocol.FrameDTO{}, fmt.Errorf("%w\n%s", err, usage)
 	}
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = fmt.Sprintf("%d", protocol.Port)
-	}
-
-	c, err := client.New("localhost:"+port, []byte(os.Getenv("SKVS_ENCRYPTION_KEY")))
-	if err != nil {
-		fmt.Println("Error creating client:", err)
-		os.Exit(1)
-	}
-	defer c.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), protocol.Timeout)
-	defer cancel()
-
-	resp, err := c.Send(ctx, dto)
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-
-	fmt.Println("Response:", resp)
+	return dto, nil
 }
