@@ -73,7 +73,12 @@ func (c *Client) Send(ctx context.Context, dto protocol.FrameDTO) (string, error
 		}
 
 		_ = c.conn.SetWriteDeadline(deadline)
-		_ = c.conn.SetReadDeadline(deadline)
+
+		readDeadline := time.Now().Add(min(baseDelay*(1<<attempt), time.Second))
+		if readDeadline.After(deadline) {
+			readDeadline = deadline
+		}
+		_ = c.conn.SetReadDeadline(readDeadline)
 
 		_, err = c.conn.Write(encrypted)
 		if err != nil {
